@@ -6,333 +6,349 @@
 <title>Jamjerk — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0a0a; --surface: #111; --surface2: #1a1a1a; --border: #222;
-    --accent: #e8ff47; --accent2: #ff6b35; --accent3: #47c8ff;
-    --text: #f0f0f0; --muted: #666; --green: #4ade80; --red: #f87171;
-  }
-  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  body::before {
-    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: linear-gradient(rgba(232,255,71,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(232,255,71,.015) 1px,transparent 1px);
-    background-size: 40px 40px;
-  }
-  .app { position: relative; z-index: 1; }
-
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 32px; border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; background: rgba(10,10,10,.92); backdrop-filter: blur(12px); z-index: 100;
-  }
-  .logo { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: var(--accent); }
-  .badge {
-    display: flex; align-items: center; gap: 6px;
-    font-family: 'DM Mono', monospace; font-size: 11px;
-    padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted);
-  }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-  .period-selector { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
-  .period-btn { font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 5px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all .2s; }
-  .period-btn.active { background: var(--accent); color: #000; font-weight: 700; }
-
-  main { padding: 32px; max-width: 1400px; margin: 0 auto; }
-
-  .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 32px; }
-  .kpi-card { background: var(--surface); padding: 28px 24px; position: relative; overflow: hidden; transition: background .2s; cursor: default; }
-  .kpi-card:hover { background: var(--surface2); }
-  .kpi-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transition: transform .3s; transform-origin: left; }
-  .kpi-card:hover::after { transform: scaleX(1); }
-  .kpi-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-  .kpi-value { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 8px; letter-spacing: -.02em; }
-  .kpi-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
-
-  .charts-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 16px; }
-  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
-  .card-title { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-  .card-title span { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
-
-  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 150px; }
-  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
-  .bar-inner { display: flex; align-items: flex-end; gap: 2px; height: 120px; width: 100%; }
-  .bar { flex: 1; border-radius: 4px 4px 0 0; transition: opacity .2s; cursor: pointer; }
-  .bar:hover { opacity: .75; }
-  .bar-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); text-align: center; }
-
-  .cat-list { display: flex; flex-direction: column; gap: 0; }
-  .cat-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .cat-item:last-child { border-bottom: none; }
-  .cat-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-  .cat-name { flex: 1; }
-  .cat-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
-
-  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .prod-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 10px; font-size: 13px; }
-  .prod-item:last-child { border-bottom: none; }
-  .prod-rank { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); width: 20px; flex-shrink: 0; }
-  .prod-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .prod-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
-  .prod-ca { font-family: 'DM Mono', monospace; font-size: 12px; }
-  .prod-bar-wrap { width: 60px; height: 2px; background: var(--border); border-radius: 1px; }
-  .prod-bar-fill { height: 2px; background: var(--accent); border-radius: 1px; transition: width .8s ease; }
-
-  .orders-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
-  .order-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .order-item:last-child { border-bottom: none; }
-  .order-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-right: 8px; }
-  .order-cat { font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); margin-right: 8px; }
-  .order-amount { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); }
-
-  .loading { text-align: center; padding: 60px 0; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; }
-  .error { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); border-radius: 8px; padding: 16px; color: var(--red); font-family: 'DM Mono', monospace; font-size: 12px; margin-bottom: 24px; }
-
-  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-  .fadein { animation: fadeUp .4s ease both; }
-
-  @media(max-width:900px) {
-    .kpi-grid { grid-template-columns: repeat(2,1fr); }
-    .charts-row, .bottom-row { grid-template-columns: 1fr; }
-  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0a0a0a;--surface:#111;--s2:#1a1a1a;--border:#222;--accent:#e8ff47;--a2:#ff6b35;--a3:#47c8ff;--text:#f0f0f0;--muted:#666;--green:#4ade80;--red:#f87171}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(232,255,71,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(232,255,71,.015) 1px,transparent 1px);background-size:40px 40px}
+  .app{position:relative;z-index:1}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,.95);backdrop-filter:blur(12px);z-index:100}
+  .logo{font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--accent)}
+  .badge{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .psel{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px}
+  .pbtn{font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+  .pbtn.active{background:var(--accent);color:#000;font-weight:700}
+  .cal-wrap{position:relative}
+  .cal-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px}
+  .cal-btn.active{border-color:var(--accent);color:var(--accent)}
+  .cal-popup{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:200;min-width:276px;box-shadow:0 8px 32px rgba(0,0,0,.7)}
+  .cal-popup.open{display:block}
+  .cal-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+  .cpreset{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer}
+  .cpreset:hover{border-color:var(--accent);color:var(--accent)}
+  .cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cal-ml{font-size:13px;font-weight:700}
+  .cnav{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 8px;border-radius:4px}
+  .cnav:hover{color:var(--text)}
+  .cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cdow{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center;padding:4px 0}
+  .cday{font-family:'DM Mono',monospace;font-size:11px;text-align:center;padding:6px 2px;border-radius:4px;cursor:pointer;border:none;background:none;color:var(--text)}
+  .cday:hover{background:var(--border)}
+  .cday.today{color:var(--accent);font-weight:700}
+  .cday.sel{background:var(--accent);color:#000;font-weight:700}
+  .cday.inr{background:rgba(232,255,71,.15)}
+  .cday.empty{cursor:default;pointer-events:none}
+  .cfooter{margin-top:10px;display:flex;gap:6px;align-items:center}
+  .cinput{font-family:'DM Mono',monospace;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;flex:1;min-width:0}
+  .capply{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;font-weight:700}
+  .rfbtn{font-size:14px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px}
+  .rfbtn:hover{color:var(--text)}
+  main{padding:24px 28px;max-width:1400px;margin:0 auto}
+  .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:18px}
+  .kcard{background:var(--surface);padding:22px;transition:background .2s}
+  .kcard:hover{background:var(--s2)}
+  .klbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .kval{font-size:28px;font-weight:800;line-height:1;margin-bottom:5px;letter-spacing:-.02em}
+  .ksub{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+  .fcstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:18px}
+  .fccard{background:var(--surface);padding:18px 22px}
+  .fclbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  .fcval{font-size:24px;font-weight:800;margin-bottom:4px}
+  .fcbar{height:3px;background:var(--border);border-radius:2px;margin-top:7px}
+  .fcfill{height:3px;border-radius:2px;transition:width 1s ease}
+  .crow{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px}
+  .ccard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px}
+  .ctitle{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+  .ctitle span{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+  .barchart{display:flex;align-items:flex-end;gap:4px;height:140px;overflow-x:auto;padding-bottom:4px}
+  .bcol{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+  .binn{display:flex;align-items:flex-end;height:110px;width:100%}
+  .bar{flex:1;border-radius:3px 3px 0 0;cursor:pointer;transition:opacity .2s}
+  .bar:hover{opacity:.7}
+  .blbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center;white-space:nowrap}
+  .catlist{display:flex;flex-direction:column}
+  .catitem{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+  .catitem:last-child{border-bottom:none}
+  .catdot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .catnm{flex:1}
+  .catv{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+  .brow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pitem{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:9px;font-size:13px}
+  .pitem:last-child{border-bottom:none}
+  .prank{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:20px;flex-shrink:0}
+  .pname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pright{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+  .pca{font-family:'DM Mono',monospace;font-size:12px}
+  .pbarw{width:55px;height:2px;background:var(--border);border-radius:1px}
+  .pbarf{height:2px;background:var(--accent);border-radius:1px}
+  .olist{display:flex;flex-direction:column;max-height:300px;overflow-y:auto}
+  .oitem{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+  .oitem:last-child{border-bottom:none}
+  .odate{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-right:7px}
+  .ocat{font-size:10px;padding:2px 5px;border-radius:4px;border:1px solid var(--border);color:var(--muted);margin-right:5px}
+  .oamt{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)}
+  .loading{text-align:center;padding:60px 0;color:var(--muted);font-family:'DM Mono',monospace;font-size:13px}
+  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .errbox{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:14px;color:var(--red);font-family:'DM Mono',monospace;font-size:12px;margin-bottom:20px}
+  .cached-tag{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:2px 6px;border:1px solid var(--border);border-radius:4px}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .fi{animation:fadeUp .35s ease both}
+  @media(max-width:900px){.kgrid,.fcstrip{grid-template-columns:repeat(2,1fr)}.crow,.brow{grid-template-columns:1fr}header,main{padding:12px 14px}}
 </style>
 </head>
 <body>
 <div class="app">
 <header>
-  <div class="logo" id="resto-name">Dashboard</div>
-  <div class="badge"><span class="dot"></span><span id="status">Connexion...</span></div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="period-selector">
-      <button class="period-btn" onclick="setPeriod(7,this)">7j</button>
-      <button class="period-btn active" onclick="setPeriod(30,this)">30j</button>
-      <button class="period-btn" onclick="setPeriod(90,this)">3m</button>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo" id="rname">Dashboard</div>
+    <div class="badge"><span class="dot"></span><span id="status">Connexion...</span></div>
+    <span class="cached-tag" id="cache-tag" style="display:none">cache</span>
+  </div>
+  <div class="controls">
+    <div class="psel">
+      <button class="pbtn" onclick="preset(1,this)">1j</button>
+      <button class="pbtn" onclick="preset(7,this)">7j</button>
+      <button class="pbtn active" onclick="preset(30,this)">30j</button>
+      <button class="pbtn" onclick="preset(90,this)">3m</button>
     </div>
-    <button onclick="loadAll()" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline">↺ Refresh</button>
+    <div class="cal-wrap">
+      <button class="cal-btn" id="cbtn" onclick="togCal()">📅 <span id="clbl">Personnalisé</span></button>
+      <div class="cal-popup" id="cpop">
+        <div class="cal-presets">
+          <button class="cpreset" onclick="qpick('today')">Aujourd'hui</button>
+          <button class="cpreset" onclick="qpick('yesterday')">Hier</button>
+          <button class="cpreset" onclick="qpick('thisweek')">Cette semaine</button>
+          <button class="cpreset" onclick="qpick('lastweek')">Sem. passée</button>
+          <button class="cpreset" onclick="qpick('thismonth')">Ce mois</button>
+          <button class="cpreset" onclick="qpick('lastmonth')">Mois passé</button>
+        </div>
+        <div class="cal-hdr">
+          <button class="cnav" onclick="ncal(-1)">‹</button>
+          <div class="cal-ml" id="cml"></div>
+          <button class="cnav" onclick="ncal(1)">›</button>
+        </div>
+        <div class="cgrid" id="cgrid"></div>
+        <div class="cfooter">
+          <input class="cinput" type="date" id="ifrom">
+          <span style="color:var(--muted)">→</span>
+          <input class="cinput" type="date" id="ito">
+          <button class="capply" onclick="applyD()">OK</button>
+        </div>
+      </div>
+    </div>
+    <button class="rfbtn" onclick="load(true)" title="Forcer le refresh">↺</button>
   </div>
 </header>
-
 <main>
-  <div id="error" style="display:none" class="error"></div>
-  <div id="root"><div class="loading">Chargement des données...</div></div>
+  <div id="err" style="display:none" class="errbox"></div>
+  <div id="root"><div class="loading"><div class="spinner"></div><br>Chargement...</div></div>
 </main>
 </div>
 
 <script>
-let days = 30;
-const CAT_COLORS = ['#e8ff47','#47c8ff','#ff6b35','#a78bfa','#4ade80','#f472b6'];
+// ── CONFIG ──────────────────────────────────────────────
+const CC=['#e8ff47','#47c8ff','#ff6b35','#a78bfa','#4ade80','#f472b6','#fb923c','#34d399'];
 
-function setPeriod(d, btn) {
-  days = d;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+// ── STATE ───────────────────────────────────────────────
+let _days=30,_from=null,_to=null,_custom=false;
+let _cy=new Date().getFullYear(),_cm=new Date().getMonth();
+let _sf=null,_st=null;
+
+// ── DATES ───────────────────────────────────────────────
+function gf(){if(_custom&&_from)return _from;const d=new Date();d.setDate(d.getDate()-_days);return iso(d)}
+function gt(){return(_custom&&_to)?_to:iso(new Date())}
+function iso(d){return d.toISOString().split('T')[0]}
+function lbl(f,t){const s=v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});return f===t?s(f):s(f)+' → '+s(t)}
+
+// ── PRESETS ─────────────────────────────────────────────
+function preset(d,btn){
+  _days=d;_custom=false;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  loadAll();
+  document.getElementById('cbtn').classList.remove('active');
+  document.getElementById('clbl').textContent='Personnalisé';
+  closeCal();load();
 }
 
-function dateFrom() {
-  const d = new Date(); d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0];
-}
-function dateTo() { return new Date().toISOString().split('T')[0]; }
+// ── CALENDAR ────────────────────────────────────────────
+function togCal(){document.getElementById('cpop').classList.toggle('open');rcal()}
+function closeCal(){document.getElementById('cpop').classList.remove('open')}
+document.addEventListener('click',e=>{if(!e.target.closest('.cal-wrap'))closeCal()});
+function ncal(d){_cm+=d;if(_cm>11){_cm=0;_cy++}if(_cm<0){_cm=11;_cy--}rcal()}
 
-async function apiFetch(path, params = '') {
-  const sep = params ? '?' : '';
-  const url = `/api${path}${sep}${params}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
-}
-
-async function fetchPaged(path, extraParams = '') {
-  const dateParams = `date_from=${dateFrom()}&date_to=${dateTo()}`;
-  const params = extraParams ? dateParams + '&' + extraParams : dateParams;
-  let results = [], nextUrl = null;
-  let data = await apiFetch(path, params);
-  results = results.concat(data.data || []);
-  nextUrl = data.links?.next;
-  while (nextUrl && nextUrl !== 'null') {
-    const r = await fetch(nextUrl.replace('https://api.yokitup.com', '/api'));
-    if (!r.ok) break;
-    data = await r.json();
-    results = results.concat(data.data || []);
-    nextUrl = data.links?.next;
+function rcal(){
+  const MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cml').textContent=MN[_cm]+' '+_cy;
+  const today=iso(new Date());
+  let h=['L','M','M','J','V','S','D'].map(d=>`<div class="cdow">${d}</div>`).join('');
+  let dow=new Date(_cy,_cm,1).getDay();if(dow===0)dow=7;
+  for(let i=1;i<dow;i++)h+=`<button class="cday empty"></button>`;
+  const dim=new Date(_cy,_cm+1,0).getDate();
+  for(let i=1;i<=dim;i++){
+    const ds=`${_cy}-${String(_cm+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    let c='cday';
+    if(ds===today)c+=' today';
+    if(ds===_sf||ds===_st)c+=' sel';
+    else if(_sf&&_st&&ds>_sf&&ds<_st)c+=' inr';
+    h+=`<button class="${c}" onclick="pick('${ds}')">${i}</button>`;
   }
-  return results;
+  document.getElementById('cgrid').innerHTML=h;
 }
 
-function fmt(nano) {
-  return (parseInt(nano || 0) / 1000000000).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+function pick(ds){
+  if(!_sf||(_sf&&_st)){_sf=ds;_st=null}else if(ds<_sf){_st=_sf;_sf=ds}else _st=ds;
+  document.getElementById('ifrom').value=_sf||'';
+  document.getElementById('ito').value=_st||'';
+  rcal();
+  if(_sf&&_st)applyD();
 }
 
-function groupByDay(orders) {
-  const map = {};
-  orders.forEach(o => {
-    map[o.date] = (map[o.date] || 0) + parseInt(o.amount_including_tax || 0);
-  });
-  return map;
+function applyD(){
+  const f=document.getElementById('ifrom').value||_sf;
+  const t=document.getElementById('ito').value||_st||f;
+  if(!f)return;
+  _from=f;_to=t;_custom=true;_sf=f;_st=t;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cbtn').classList.add('active');
+  document.getElementById('clbl').textContent=lbl(f,t);
+  closeCal();load();
 }
 
-async function loadAll() {
-  document.getElementById('error').style.display = 'none';
-  document.getElementById('root').innerHTML = '<div class="loading">Chargement des données...</div>';
-  document.getElementById('status').textContent = 'Connexion...';
+function qpick(k){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  let f,t;
+  if(k==='today'){f=t=iso(now)}
+  else if(k==='yesterday'){const p=new Date(now);p.setDate(d-1);f=t=iso(p)}
+  else if(k==='thisweek'){const s=new Date(now);s.setDate(d-(now.getDay()||7)+1);f=iso(s);t=iso(now)}
+  else if(k==='lastweek'){const s=new Date(now);s.setDate(d-(now.getDay()||7)-6);const e=new Date(s);e.setDate(s.getDate()+6);f=iso(s);t=iso(e)}
+  else if(k==='thismonth'){f=`${y}-${String(m+1).padStart(2,'0')}-01`;t=iso(now)}
+  else if(k==='lastmonth'){const pm=new Date(y,m,0);f=`${pm.getFullYear()}-${String(pm.getMonth()+1).padStart(2,'0')}-01`;t=iso(pm)}
+  document.getElementById('ifrom').value=f;document.getElementById('ito').value=t;
+  _sf=f;_st=t;rcal();
+  _from=f;_to=t;_custom=true;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cbtn').classList.add('active');
+  document.getElementById('clbl').textContent=lbl(f,t);
+  closeCal();load();
+}
 
-  try {
-    const [locData, catData] = await Promise.all([
-      apiFetch('/locations'),
-      apiFetch('/pos_categories')
-    ]);
+// ── FORMAT ──────────────────────────────────────────────
+function fmt(n,div){return(parseInt(n||0)/(div||1000000000)).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}
+function pct(v){return Math.round(v*10)/10+'%'}
+function fcc(v){return v<28?'var(--green)':v<35?'var(--accent)':'var(--red)'}
 
-    const locs = locData.data || [];
-    const cats = catData.data || [];
-    const catMap = {}; cats.forEach(c => catMap[c.id] = c.name);
-    const locMap = {}; locs.forEach(l => locMap[l.id] = l.name);
+// ── LOAD ────────────────────────────────────────────────
+async function load(force=false){
+  document.getElementById('err').style.display='none';
+  document.getElementById('root').innerHTML='<div class="loading"><div class="spinner"></div><br>Chargement...</div>';
+  document.getElementById('status').textContent='Chargement...';
+  document.getElementById('cache-tag').style.display='none';
 
-    if (locs.length > 0) document.getElementById('resto-name').textContent = locs[0].name;
-    document.getElementById('status').textContent = locs.length + ' établissement' + (locs.length > 1 ? 's' : '');
+  const from=gf(),to=gt();
+  const url=`/dashboard?from=${from}&to=${to}`+(force?'&nocache=1':'');
 
-    const [orders, products] = await Promise.all([
-      fetchPaged('/pos_orders'),
-      apiFetch('/products').then(r => r.data || [])
-    ]);
+  try{
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
 
-    const prodMap = {}; products.forEach(p => prodMap[p.id] = p.name);
+    if(d.meta?.locs?.length)document.getElementById('rname').textContent=d.meta.locs[0];
+    document.getElementById('status').textContent=(d.meta?.locs?.length||0)+' établissement'+(d.meta?.locs?.length>1?'s':'');
+    if(d.cached)document.getElementById('cache-tag').style.display='inline';
 
-    let orderItems = [];
-    try { orderItems = await fetchPaged('/pos_order_items'); } catch(e) {}
+    const DIV=d.div||1000000000;
+    const CAT_COLORS=CC;
+    const periodLbl=_custom?lbl(from,to):_days+' derniers jours';
+    const caTotal=d.kpis.totalCA||1;
+    const fcG=d.kpis.totalAchats>0?(d.kpis.totalAchats/caTotal*100):null;
 
-    const totalCA = orders.reduce((s, o) => s + parseInt(o.amount_including_tax || 0), 0);
-    const nbOrders = orders.length;
-    const ticketMoyen = nbOrders > 0 ? Math.round(totalCA / nbOrders) : 0;
+    const byDay=d.byDay||{};
+    const dk=Object.keys(byDay).sort();
+    const maxD=Math.max(...dk.map(k=>byDay[k]),1);
+    const dlbl=dk.map(v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}));
+    const barW=Math.max(18,Math.min(40,Math.floor(560/Math.max(dk.length,1))));
 
-    const byCat = {};
-    orders.forEach(o => {
-      const k = catMap[o.pos_category_id] || 'Autre';
-      byCat[k] = (byCat[k] || 0) + parseInt(o.amount_including_tax || 0);
-    });
+    const sortedCats=Object.entries(d.byCat||{}).sort((a,b)=>b[1]-a[1]);
+    const topP=d.topProds||[];
+    const maxP=topP.length?Math.max(...topP.map(p=>p.ca),1):1;
+    const usingQty=d.caByTag?.usingQty;
+    const caFood=d.caByTag?.food||0;
+    const caBev=(d.caByTag?.bev||0)+(d.caByTag?.spr||0);
 
-    const prodSales = {};
-    orderItems.forEach(i => {
-      if (!prodSales[i.product_id]) prodSales[i.product_id] = { qty: 0, ca: 0 };
-      prodSales[i.product_id].qty += parseFloat(i.quantity || 0);
-      prodSales[i.product_id].ca += parseInt(i.amount_including_tax || 0);
-    });
-
-    const topProds = Object.entries(prodSales).sort((a,b) => b[1].ca - a[1].ca).slice(0, 8);
-    const maxProd = topProds.length > 0 ? topProds[0][1].ca : 1;
-
-    const byDay = groupByDay(orders);
-    const dayKeys = Object.keys(byDay).sort().slice(-14);
-    const maxDay = Math.max(...dayKeys.map(k => byDay[k]), 1);
-
-    const sortedCats = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
-    const recentOrders = [...orders].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20);
-
-    const dayLabels = dayKeys.map(d => {
-      const dt = new Date(d);
-      return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-    });
-
-    document.getElementById('root').innerHTML = `
-      <div class="kpi-grid fadein">
-        <div class="kpi-card">
-          <div class="kpi-label">Chiffre d'affaires</div>
-          <div class="kpi-value" style="color:var(--accent)">${fmt(totalCA)}</div>
-          <div class="kpi-sub">${days} derniers jours</div>
+    document.getElementById('root').innerHTML=`
+      <div class="kgrid fi">
+        <div class="kcard"><div class="klbl">Chiffre d'affaires</div><div class="kval" style="color:var(--accent)">${fmt(d.kpis.totalCA,DIV)}</div><div class="ksub">${periodLbl}</div></div>
+        <div class="kcard"><div class="klbl">Commandes POS</div><div class="kval">${(d.kpis.nbOrders||0).toLocaleString('fr-FR')}</div><div class="ksub">${periodLbl}</div></div>
+        <div class="kcard"><div class="klbl">Ticket moyen</div><div class="kval">${fmt(d.kpis.ticket,DIV)}</div><div class="ksub">par commande</div></div>
+        <div class="kcard"><div class="klbl">Achats matières</div><div class="kval" style="color:var(--a2)">${fmt(d.kpis.totalAchats,DIV)}</div><div class="ksub">BL reçus sur la période</div></div>
+      </div>
+      <div class="fcstrip fi">
+        <div class="fccard">
+          <div class="fclbl">Food Cost Global</div>
+          ${fcG!==null?`<div class="fcval" style="color:${fcc(fcG)}">${pct(fcG)}</div><div class="fcbar"><div class="fcfill" style="width:${Math.min(fcG,100)}%;background:${fcc(fcG)}"></div></div>`:'<div class="fcval" style="color:var(--muted)">—</div>'}
+          <div class="ksub" style="margin-top:6px">achats HT / CA TTC</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Commandes</div>
-          <div class="kpi-value">${nbOrders.toLocaleString('fr-FR')}</div>
-          <div class="kpi-sub">orders POS</div>
+        <div class="fccard">
+          <div class="fclbl">CA Food${usingQty?' (qty)':''}</div>
+          <div class="fcval" style="color:var(--a3)">${caFood>0?fmt(caFood,DIV):'—'}</div>
+          <div class="ksub" style="margin-top:6px">${caFood>0?Math.round(caFood/caTotal*100)+'% du CA':'Tags food non détectés'}</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Ticket moyen</div>
-          <div class="kpi-value">${fmt(ticketMoyen)}</div>
-          <div class="kpi-sub">par commande</div>
+        <div class="fccard">
+          <div class="fclbl">CA Boissons${usingQty?' (qty)':''}</div>
+          <div class="fcval" style="color:var(--a3)">${caBev>0?fmt(caBev,DIV):'—'}</div>
+          <div class="ksub" style="margin-top:6px">${caBev>0?Math.round(caBev/caTotal*100)+'% du CA':'Tags bev non détectés'}</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Établissements</div>
-          <div class="kpi-value" style="color:var(--accent3)">${locs.length}</div>
-          <div class="kpi-sub">${locs.map(l=>l.name).join(', ')}</div>
+        <div class="fccard">
+          <div class="fclbl">Pertes & Casses</div>
+          <div class="fcval" style="color:var(--red)">${d.kpis.totalLosses>0?fmt(d.kpis.totalLosses,DIV):'—'}</div>
+          <div class="ksub" style="margin-top:6px">${d.kpis.totalLosses>0?Math.round(d.kpis.totalLosses/caTotal*100)+'% du CA':'Aucune perte saisie'}</div>
         </div>
       </div>
-
-      <div class="charts-row fadein">
-        <div class="chart-card">
-          <div class="card-title">CA par jour <span>14 derniers jours</span></div>
-          <div class="bar-chart">
-            ${dayKeys.map((k, i) => `
-              <div class="bar-col">
-                <div class="bar-inner">
-                  <div class="bar" style="height:${Math.round(byDay[k]/maxDay*100)}%;background:var(--accent);opacity:.85" title="${dayLabels[i]} — ${fmt(byDay[k])}"></div>
-                </div>
-                <div class="bar-lbl">${dayLabels[i]}</div>
-              </div>
-            `).join('')}
+      <div class="crow fi">
+        <div class="ccard">
+          <div class="ctitle">CA par jour <span>${periodLbl}</span></div>
+          <div class="barchart">
+            ${dk.map((k,i)=>`
+              <div class="bcol" style="width:${barW}px">
+                <div class="binn"><div class="bar" style="height:${Math.round(byDay[k]/maxD*100)}%;background:var(--accent);opacity:.85" title="${dlbl[i]} — ${fmt(byDay[k],DIV)}"></div></div>
+                <div class="blbl">${dk.length<=20?dlbl[i]:i%Math.ceil(dk.length/8)===0?dlbl[i]:''}</div>
+              </div>`).join('')}
           </div>
         </div>
-
-        <div class="chart-card">
-          <div class="card-title">Catégories POS</div>
-          <div class="cat-list">
-            ${sortedCats.length === 0
-              ? '<div style="color:var(--muted);font-size:13px;padding:12px 0">Aucune catégorie</div>'
-              : sortedCats.map(([name, val], i) => `
-                <div class="cat-item">
-                  <span class="cat-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span>
-                  <span class="cat-name">${name}</span>
-                  <span class="cat-val">${fmt(val)} · ${Math.round(val/totalCA*100)}%</span>
-                </div>
-              `).join('')
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="bottom-row fadein">
-        <div class="chart-card">
-          <div class="card-title">Top produits <span>par CA</span></div>
-          ${topProds.length === 0
-            ? '<div style="color:var(--muted);font-size:13px">Pas de données articles disponibles</div>'
-            : topProds.map(([pid, d], i) => `
-              <div class="prod-item">
-                <span class="prod-rank">#${i+1}</span>
-                <span class="prod-name">${prodMap[pid] || pid.slice(0,12)+'…'}</span>
-                <div class="prod-right">
-                  <span class="prod-ca">${fmt(d.ca)}</span>
-                  <div class="prod-bar-wrap"><div class="prod-bar-fill" style="width:${Math.round(d.ca/maxProd*100)}%"></div></div>
-                </div>
-              </div>
-            `).join('')
-          }
-        </div>
-
-        <div class="chart-card">
-          <div class="card-title">Dernières commandes</div>
-          <div class="orders-list">
-            ${recentOrders.map(o => `
-              <div class="order-item">
-                <div>
-                  <span class="order-date">${o.date}</span>
-                  <span class="order-cat">${catMap[o.pos_category_id] || '—'}</span>
-                  <span style="font-size:12px;color:var(--muted)">${locMap[o.location_id] || ''}</span>
-                </div>
-                <span class="order-amount">${fmt(o.amount_including_tax)}</span>
-              </div>
-            `).join('')}
+        <div class="ccard">
+          <div class="ctitle">Catégories POS</div>
+          <div class="catlist">
+            ${sortedCats.length===0?'<div style="color:var(--muted);font-size:13px;padding:12px 0">Aucune catégorie configurée</div>':
+              sortedCats.map(([n,v],i)=>`<div class="catitem"><span class="catdot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span><span class="catnm">${n}</span><span class="catv">${fmt(v,DIV)} · ${Math.round(v/caTotal*100)}%</span></div>`).join('')}
           </div>
         </div>
       </div>
-    `;
+      <div class="brow fi">
+        <div class="ccard">
+          <div class="ctitle">Top produits <span>${usingQty?'par quantité':'par CA'}</span></div>
+          ${topP.length===0?'<div style="color:var(--muted);font-size:13px">Aucune donnée article</div>':
+            topP.map((p,i)=>`<div class="pitem"><span class="prank">#${i+1}</span><span class="pname">${p.name||'—'}</span><div class="pright"><span class="pca">${usingQty?Math.round(p.qty)+' ventes':fmt(p.ca,DIV)}</span><div class="pbarw"><div class="pbarf" style="width:${Math.round((usingQty?p.qty:p.ca)/Math.max(usingQty?topP[0].qty:maxP,1)*100)}%"></div></div></div></div>`).join('')}
+        </div>
+        <div class="ccard">
+          <div class="ctitle">Dernières commandes</div>
+          <div class="olist">
+            ${(d.recentOrders||[]).map(o=>`<div class="oitem"><div><span class="odate">${o.date}</span><span class="ocat">${o.cat}</span><span style="font-size:11px;color:var(--muted)">${o.loc}</span></div><span class="oamt">${fmt(o.amount,DIV)}</span></div>`).join('')}
+          </div>
+        </div>
+      </div>`;
 
-  } catch(err) {
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('error').textContent = 'Erreur : ' + err.message;
-    document.getElementById('root').innerHTML = '';
-    document.getElementById('status').textContent = 'Erreur';
+  }catch(e){
+    document.getElementById('err').style.display='block';
+    document.getElementById('err').textContent='Erreur : '+e.message;
+    document.getElementById('root').innerHTML='';
+    document.getElementById('status').textContent='Erreur';
   }
 }
 
-loadAll();
+load();
 </script>
 </body>
 </html>
