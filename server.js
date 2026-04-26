@@ -14,65 +14,85 @@ const UPLOAD_SECRET = process.env.UPLOAD_SECRET || 'upload-secret';
 // ── CACHE ──────────────────────────────────────────────
 const cache = {};
 const CACHE_TTL = 5 * 60 * 1000;
-
 function cacheGet(key) {
-  const entry = cache[key];
-  if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL) { delete cache[key]; return null; }
-  return entry.data;
+  const e = cache[key];
+  if (!e) return null;
+  if (Date.now() - e.ts > CACHE_TTL) { delete cache[key]; return null; }
+  return e.data;
 }
 function cacheSet(key, data) { cache[key] = { ts: Date.now(), data }; }
 
-// ── LIGHTSPEED CSV STORE (en mémoire) ──────────────────
-let lsData = null; // données parsées du dernier CSV Lightspeed
+// ── LIGHTSPEED CSV STORE ───────────────────────────────
+// On garde les N derniers jours de CSV en mémoire
+const lsStore = {}; // { 'YYYY-MM-DD': aggregatedData }
 
 function parseCSV(csvText) {
   const lines = csvText.trim().split('\n');
   const headers = lines[0].replace(/"/g, '').split(',');
   return lines.slice(1).map(line => {
-    const vals = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || [];
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { vals.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    vals.push(cur.trim());
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/"/g, '').trim(); });
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
     return obj;
-  }).filter(r => r.Type === 'SALE' || r.Type === 'SPLIT');
+  }).filter(r => (r.Type === 'SALE' || r.Type === 'SPLIT') && parseFloat(r.FinalPrice) > 0);
 }
 
 function aggregateLS(rows) {
-  const byItem = {}, byCat = {}, byHour = {}, byDay = {};
+  const byItem = {}, byCat = {}, byGroup = {}, byHour = {}, byDay = {};
+  let totalCA = 0, totalHT = 0, totalTVA10 = 0, totalTVA20 = 0;
 
   rows.forEach(r => {
     const price = parseFloat(r.FinalPrice) || 0;
-    if (price <= 0) return;
+    const ht = parseFloat(r.PreTax) || 0;
+    const qty = parseFloat(r.Qty) || 1;
+    const tva = r.TaxName || '';
+    totalCA += price;
+    totalHT += ht;
+    if (tva.includes('20')) totalTVA20 += price;
+    else totalTVA10 += price;
 
     // Top items
     const key = r.Item;
-    if (!byItem[key]) byItem[key] = { name: r.Item, group: r.GroupeStatistique, qty: 0, ca: 0 };
-    byItem[key].qty += parseFloat(r.Qty) || 0;
+    if (!byItem[key]) byItem[key] = { name: r.Item, group: r.GroupeStatistique, category: r.Group, qty: 0, ca: 0, ht: 0 };
+    byItem[key].qty += qty;
     byItem[key].ca += price;
+    byItem[key].ht += ht;
 
-    // By category
-    const cat = r.GroupeStatistique || 'Autre';
-    byCat[cat] = (byCat[cat] || 0) + price;
+    // By GroupeStatistique (Plat, Cocktail, Soft froid, Entrée, Dessert...)
+    const gs = r.GroupeStatistique || 'Autre';
+    byCat[gs] = (byCat[gs] || 0) + price;
+
+    // By Group (Cuisine, Boissons, Alcools...)
+    const grp = (r.Group || 'Autre').replace(/\(.*?\)/g, '').trim();
+    byGroup[grp] = (byGroup[grp] || 0) + price;
 
     // By hour
-    const dateStr = r.Date; // "25/04/26 12:27"
+    const dateStr = r.Date;
     if (dateStr) {
       const parts = dateStr.split(' ');
-      if (parts[1]) {
-        const h = parts[1].split(':')[0];
-        byHour[h] = (byHour[h] || 0) + price;
-      }
-      // By day
+      if (parts[1]) { const h = parts[1].split(':')[0]; byHour[h] = (byHour[h] || 0) + price; }
       if (parts[0]) {
-        byDay[parts[0]] = (byDay[parts[0]] || 0) + price;
+        // Convert DD/MM/YY to YYYY-MM-DD
+        const dp = parts[0].split('/');
+        if (dp.length === 3) {
+          const dayKey = `20${dp[2]}-${dp[1]}-${dp[0]}`;
+          byDay[dayKey] = (byDay[dayKey] || 0) + price;
+        }
       }
     }
   });
 
   const topItems = Object.values(byItem).sort((a, b) => b.ca - a.ca).slice(0, 15);
-  const totalCA = Object.values(byCat).reduce((s, v) => s + v, 0);
 
-  return { topItems, byCat, byHour, byDay, totalCA, nbRows: rows.length, updatedAt: new Date().toISOString() };
+  return { topItems, byCat, byGroup, byHour, byDay, totalCA, totalHT, totalTVA10, totalTVA20, nbRows: rows.length, updatedAt: new Date().toISOString() };
 }
 
 // ── AUTH ───────────────────────────────────────────────
@@ -90,35 +110,31 @@ function checkAuth(req, res, next) {
   next();
 }
 
-// ── YOKITUP HELPERS ────────────────────────────────────
-const YK_HEADERS = {
-  'Authorization': 'Bearer ' + API_KEY,
-  'Yokitup-Version': '2025-01-01',
-  'Content-Type': 'application/json'
-};
+// ── YOKITUP ────────────────────────────────────────────
+const YK_HEADERS = { 'Authorization': 'Bearer ' + API_KEY, 'Yokitup-Version': '2025-01-01', 'Content-Type': 'application/json' };
 
 async function ykFetch(url) {
   const r = await fetch(url, { headers: YK_HEADERS });
-  if (!r.ok) throw new Error('Yokitup HTTP ' + r.status + ' — ' + url);
+  if (!r.ok) throw new Error('Yokitup HTTP ' + r.status);
   return r.json();
 }
 
 async function ykAll(path, params = '') {
-  const cached = cacheGet(path + params);
+  const key = path + params;
+  const cached = cacheGet(key);
   if (cached) return cached;
-  let results = [];
-  let url = BASE + path + (params ? '?' + params : '');
+  let results = [], url = BASE + path + (params ? '?' + params : '');
   while (url) {
     const data = await ykFetch(url);
     results = results.concat(data.data || []);
     const next = data.links?.next;
     url = (next && next !== url) ? next : null;
   }
-  cacheSet(path + params, results);
+  cacheSet(key, results);
   return results;
 }
 
-// ── UPLOAD LIGHTSPEED CSV ──────────────────────────────
+// ── UPLOAD CSV LIGHTSPEED ──────────────────────────────
 app.post('/upload/lightspeed', upload.single('file'), (req, res) => {
   const secret = req.headers['x-upload-secret'] || req.query.secret;
   if (secret !== UPLOAD_SECRET) return res.status(401).json({ error: 'Secret invalide' });
@@ -127,118 +143,127 @@ app.post('/upload/lightspeed', upload.single('file'), (req, res) => {
   try {
     const csvText = req.file.buffer.toString('utf-8');
     const rows = parseCSV(csvText);
-    lsData = aggregateLS(rows);
-    // Vider le cache dashboard pour forcer un refresh
+    const agg = aggregateLS(rows);
+
+    // Stocker par date (les jours couverts par ce CSV)
+    Object.keys(agg.byDay).forEach(day => {
+      lsStore[day] = agg;
+    });
+    // Si byDay vide, stocker sous aujourd'hui
+    if (Object.keys(agg.byDay).length === 0) {
+      lsStore[new Date().toISOString().split('T')[0]] = agg;
+    }
+
+    // Vider le cache dashboard
     Object.keys(cache).filter(k => k.startsWith('dashboard:')).forEach(k => delete cache[k]);
-    console.log('CSV Lightspeed reçu —', rows.length, 'lignes');
-    res.json({ ok: true, rows: rows.length, totalCA: lsData.totalCA });
+    console.log('CSV Lightspeed reçu —', rows.length, 'lignes —', Object.keys(agg.byDay).join(', '));
+    res.json({ ok: true, rows: rows.length, days: Object.keys(agg.byDay), totalCA: agg.totalCA });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── LIGHTSPEED DATA ENDPOINT ───────────────────────────
-app.get('/lightspeed', checkAuth, (req, res) => {
-  if (!lsData) return res.json({ available: false });
-  res.json({ available: true, ...lsData });
-});
-
-// ── AGGREGATED YOKITUP ENDPOINT ────────────────────────
+// ── DASHBOARD ENDPOINT ─────────────────────────────────
 app.get('/dashboard', checkAuth, async (req, res) => {
   const { from, to } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from and to required' });
 
-  const dateParams = `date_from=${from}&date_to=${to}`;
   const cacheKey = 'dashboard:' + from + ':' + to;
   const cached = cacheGet(cacheKey);
   if (cached) return res.json({ ...cached, cached: true });
 
   try {
-    const [locs, cats, products, prodTags, tags] = await Promise.all([
-      ykAll('/locations'),
-      ykAll('/pos_categories'),
-      ykAll('/products'),
-      ykAll('/product_tags'),
-      ykAll('/tags')
-    ]);
+    const dateParams = `date_from=${from}&date_to=${to}`;
 
-    const [orders, deliveries, losses] = await Promise.all([
+    // Yokitup data (CA global, achats, pertes)
+    const [locs, orders, deliveries, losses] = await Promise.all([
+      ykAll('/locations'),
       ykAll('/pos_orders', dateParams),
       ykAll('/supplier_delivery_notes', dateParams).catch(() => []),
       ykAll('/losses', dateParams).catch(() => [])
     ]);
 
-    let orderItems = [];
-    if (orders.length > 0) {
-      orderItems = await ykAll('/pos_order_items', dateParams).catch(() => []);
-    }
-
-    const catMap  = {}; cats.forEach(c => catMap[c.id] = c.name);
-    const locMap  = {}; locs.forEach(l => locMap[l.id] = l.name);
-    const prodMap = {}; products.forEach(p => prodMap[p.id] = p.name);
-    const tagMap  = {}; tags.forEach(t => tagMap[t.id] = (t.name || '').toLowerCase());
-    const ptMap   = {};
-    prodTags.forEach(pt => {
-      if (!ptMap[pt.product_id]) ptMap[pt.product_id] = [];
-      if (tagMap[pt.tag_id]) ptMap[pt.product_id].push(tagMap[pt.tag_id]);
-    });
+    const locMap = {}; locs.forEach(l => locMap[l.id] = l.name);
 
     const DIV = 1000000000;
-    const totalCA     = orders.reduce((s, o) => s + parseInt(o.amount_including_tax || 0), 0);
-    const nbOrders    = orders.length;
-    const ticket      = nbOrders > 0 ? Math.round(totalCA / nbOrders) : 0;
+    const totalCA_yk = orders.reduce((s, o) => s + parseInt(o.amount_including_tax || 0), 0);
+    const nbOrders = orders.length;
+    const ticket = nbOrders > 0 ? Math.round(totalCA_yk / nbOrders) : 0;
     const totalAchats = deliveries.reduce((s, d) => s + parseInt(d.received_amount_excluding_tax || 0), 0);
     const totalLosses = losses.reduce((s, l) => s + parseInt(l.cost || 0), 0);
 
-    const byDay = {};
-    orders.forEach(o => { byDay[o.date] = (byDay[o.date] || 0) + parseInt(o.amount_including_tax || 0); });
+    // Yokitup by day (CA global)
+    const byDay_yk = {};
+    orders.forEach(o => { byDay_yk[o.date] = (byDay_yk[o.date] || 0) + parseInt(o.amount_including_tax || 0); });
 
-    const byCat = {};
-    orders.forEach(o => {
-      const k = catMap[o.pos_category_id] || 'Autre';
-      byCat[k] = (byCat[k] || 0) + parseInt(o.amount_including_tax || 0);
-    });
-
-    const prodSales = {};
-    orderItems.forEach(i => {
-      const ca = parseInt(i.amount_including_tax || 0);
-      const qty = parseFloat(i.quantity || 0);
-      if (!prodSales[i.product_id]) prodSales[i.product_id] = { name: prodMap[i.product_id] || null, qty: 0, ca: 0 };
-      prodSales[i.product_id].qty += qty;
-      prodSales[i.product_id].ca  += ca;
-    });
-
-    const totalItemCA = Object.values(prodSales).reduce((s, v) => s + v.ca, 0);
-    const topProds = Object.entries(prodSales)
-      .sort((a, b) => totalItemCA > 0 ? b[1].ca - a[1].ca : b[1].qty - a[1].qty)
-      .slice(0, 10)
-      .map(([pid, d]) => ({ pid, name: d.name || pid.slice(0, 8) + '…', qty: d.qty, ca: d.ca }));
-
-    const FOOD_TAGS = ['entrée','entree','plat','dessert','food','cuisine','burger','sandwich','salade'];
-    const BEV_TAGS  = ['cocktail','cocktails','soft','softs','boisson','boissons','beverage','bière','biere','vin','wine'];
-    const SPR_TAGS  = ['likkaz','spiritueux','whisky','rhum','gin','vodka','alcool','spirit'];
-
-    let caFood = 0, caBev = 0, caSpr = 0;
-    orderItems.forEach(i => {
-      const ts = ptMap[i.product_id] || [];
-      const v  = parseInt(i.amount_including_tax || 0);
-      const val = v > 0 ? v : parseFloat(i.quantity || 0);
-      if (ts.some(t => SPR_TAGS.some(s => t.includes(s))))       caSpr  += val;
-      else if (ts.some(t => BEV_TAGS.some(s => t.includes(s))))  caBev  += val;
-      else if (ts.some(t => FOOD_TAGS.some(s => t.includes(s)))) caFood += val;
-    });
-
+    // Recent orders
     const recentOrders = [...orders]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 30)
-      .map(o => ({ date: o.date, cat: catMap[o.pos_category_id] || '—', loc: locMap[o.location_id] || '', amount: parseInt(o.amount_including_tax || 0) }));
+      .map(o => ({ date: o.date, cat: '—', loc: locMap[o.location_id] || '', amount: parseInt(o.amount_including_tax || 0) }));
+
+    // ── LIGHTSPEED DATA (si disponible) ─────────────────
+    // Agréger tous les lsStore dont la date est dans [from, to]
+    const lsDays = Object.keys(lsStore).filter(d => d >= from && d <= to);
+    let lsAgg = null;
+
+    if (lsDays.length > 0) {
+      // Fusionner les données LS des jours concernés
+      const merged = { topItems: {}, byCat: {}, byGroup: {}, byDay: {}, totalCA: 0, totalHT: 0, totalTVA10: 0, totalTVA20: 0 };
+      lsDays.forEach(day => {
+        const ls = lsStore[day];
+        ls.topItems.forEach(item => {
+          if (!merged.topItems[item.name]) merged.topItems[item.name] = { ...item, qty: 0, ca: 0, ht: 0 };
+          merged.topItems[item.name].qty += item.qty;
+          merged.topItems[item.name].ca += item.ca;
+          merged.topItems[item.name].ht += item.ht;
+        });
+        Object.entries(ls.byCat).forEach(([k, v]) => { merged.byCat[k] = (merged.byCat[k] || 0) + v; });
+        Object.entries(ls.byGroup).forEach(([k, v]) => { merged.byGroup[k] = (merged.byGroup[k] || 0) + v; });
+        Object.entries(ls.byDay).forEach(([k, v]) => { merged.byDay[k] = (merged.byDay[k] || 0) + v; });
+        merged.totalCA += ls.totalCA;
+        merged.totalHT += ls.totalHT;
+        merged.totalTVA10 += ls.totalTVA10;
+        merged.totalTVA20 += ls.totalTVA20;
+      });
+      merged.topItems = Object.values(merged.topItems).sort((a, b) => b.ca - a.ca).slice(0, 12);
+      lsAgg = merged;
+    }
+
+    // ── CHOISIR LA SOURCE ────────────────────────────────
+    // CA : Yokitup (plus fiable pour le global)
+    // Top produits & catégories : Lightspeed si dispo
+    const byDay = lsAgg && Object.keys(lsAgg.byDay).length > 0
+      ? Object.fromEntries(Object.entries(lsAgg.byDay).map(([k, v]) => [k, Math.round(v * DIV)]))
+      : byDay_yk;
+
+    const byCat = lsAgg ? lsAgg.byCat : {};
+    const topProds = lsAgg
+      ? lsAgg.topItems.map(p => ({ name: p.name, qty: Math.round(p.qty), ca: Math.round(p.ca * DIV), group: p.group }))
+      : [];
+
+    // Food cost par groupe Lightspeed
+    let caFood = 0, caBev = 0, caSpr = 0;
+    if (lsAgg) {
+      Object.entries(lsAgg.byGroup).forEach(([grp, val]) => {
+        const g = grp.toLowerCase();
+        if (g.includes('alcool') || g.includes('spirit') || g.includes('likkaz')) caSpr += val;
+        else if (g.includes('boisson') || g.includes('bar')) caBev += val;
+        else if (g.includes('cuisine') || g.includes('food')) caFood += val;
+      });
+    }
+
+    const lsAvailable = !!lsAgg;
+    const lsDaysCount = lsDays.length;
 
     const payload = {
-      meta: { locs: locs.map(l => l.name), nbOrders, from, to },
-      kpis: { totalCA, ticket, totalAchats, totalLosses, nbOrders },
-      byDay, byCat, topProds,
-      caByTag: { food: caFood, bev: caBev, spr: caSpr, usingQty: totalItemCA === 0 },
+      meta: { locs: locs.map(l => l.name), nbOrders, from, to, lsAvailable, lsDaysCount },
+      kpis: { totalCA: totalCA_yk, ticket, totalAchats, totalLosses, nbOrders },
+      byDay,
+      byCat,
+      topProds,
+      caByTag: { food: Math.round(caFood * DIV), bev: Math.round((caBev + caSpr) * DIV), usingQty: false, lsSource: lsAvailable },
       recentOrders,
       div: DIV
     };
@@ -264,14 +289,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/*', async (req, res) => {
   const endpoint = req.path.replace('/api', '');
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  const url = BASE + endpoint + query;
   try {
-    const r = await fetch(url, { headers: YK_HEADERS });
-    const data = await r.json();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const r = await fetch(BASE + endpoint + query, { headers: YK_HEADERS });
+    res.json(await r.json());
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.listen(PORT, () => console.log('Dashboard running on port ' + PORT));
