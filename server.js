@@ -1,6 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -10,6 +11,7 @@ const API_KEY = process.env.YOKITUP_API_KEY;
 const BASE = 'https://api.yokitup.com';
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'changeme';
 const UPLOAD_SECRET = process.env.UPLOAD_SECRET || 'upload-secret';
+const STORE_PATH = path.join('/tmp', 'ls_store.json');
 
 // ── CACHE ──────────────────────────────────────────────
 const cache = {};
@@ -22,10 +24,27 @@ function cacheGet(key) {
 }
 function cacheSet(key, data) { cache[key] = { ts: Date.now(), data }; }
 
-// ── LIGHTSPEED CSV STORE ───────────────────────────────
-// On garde les N derniers jours de CSV en mémoire
-const lsStore = {}; // { 'YYYY-MM-DD': aggregatedData }
+// ── LIGHTSPEED STORE (disque) ──────────────────────────
+let lsStore = {};
 
+function loadStore() {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      lsStore = JSON.parse(fs.readFileSync(STORE_PATH, 'utf-8'));
+      console.log('Store chargé depuis disque —', Object.keys(lsStore).length, 'jours');
+    }
+  } catch(e) { console.error('Erreur lecture store:', e.message); lsStore = {}; }
+}
+
+function saveStore() {
+  try {
+    fs.writeFileSync(STORE_PATH, JSON.stringify(lsStore), 'utf-8');
+  } catch(e) { console.error('Erreur écriture store:', e.message); }
+}
+
+loadStore(); // Charger au démarrage
+
+// ── CSV PARSING ────────────────────────────────────────
 function parseCSV(csvText) {
   const lines = csvText.trim().split('\n');
   const headers = lines[0].replace(/"/g, '').split(',');
@@ -46,7 +65,7 @@ function parseCSV(csvText) {
 }
 
 function aggregateLS(rows) {
-  const byItem = {}, byCat = {}, byGroup = {}, byHour = {}, byDay = {};
+  const byItem = {}, byCat = {}, byGroup = {}, byDay = {};
   let totalCA = 0, totalHT = 0, totalTVA10 = 0, totalTVA20 = 0;
 
   rows.forEach(r => {
@@ -59,28 +78,22 @@ function aggregateLS(rows) {
     if (tva.includes('20')) totalTVA20 += price;
     else totalTVA10 += price;
 
-    // Top items
     const key = r.Item;
     if (!byItem[key]) byItem[key] = { name: r.Item, group: r.GroupeStatistique, category: r.Group, qty: 0, ca: 0, ht: 0 };
     byItem[key].qty += qty;
     byItem[key].ca += price;
     byItem[key].ht += ht;
 
-    // By GroupeStatistique (Plat, Cocktail, Soft froid, Entrée, Dessert...)
     const gs = r.GroupeStatistique || 'Autre';
     byCat[gs] = (byCat[gs] || 0) + price;
 
-    // By Group (Cuisine, Boissons, Alcools...)
     const grp = (r.Group || 'Autre').replace(/\(.*?\)/g, '').trim();
     byGroup[grp] = (byGroup[grp] || 0) + price;
 
-    // By hour
     const dateStr = r.Date;
     if (dateStr) {
       const parts = dateStr.split(' ');
-      if (parts[1]) { const h = parts[1].split(':')[0]; byHour[h] = (byHour[h] || 0) + price; }
       if (parts[0]) {
-        // Convert DD/MM/YY to YYYY-MM-DD
         const dp = parts[0].split('/');
         if (dp.length === 3) {
           const dayKey = `20${dp[2]}-${dp[1]}-${dp[0]}`;
@@ -91,8 +104,7 @@ function aggregateLS(rows) {
   });
 
   const topItems = Object.values(byItem).sort((a, b) => b.ca - a.ca).slice(0, 15);
-
-  return { topItems, byCat, byGroup, byHour, byDay, totalCA, totalHT, totalTVA10, totalTVA20, nbRows: rows.length, updatedAt: new Date().toISOString() };
+  return { topItems, byCat, byGroup, byDay, totalCA, totalHT, totalTVA10, totalTVA20, nbRows: rows.length, updatedAt: new Date().toISOString() };
 }
 
 // ── AUTH ───────────────────────────────────────────────
@@ -134,7 +146,7 @@ async function ykAll(path, params = '') {
   return results;
 }
 
-// ── UPLOAD CSV LIGHTSPEED ──────────────────────────────
+// ── UPLOAD CSV ─────────────────────────────────────────
 app.post('/upload/lightspeed', upload.single('file'), (req, res) => {
   const secret = req.headers['x-upload-secret'] || req.query.secret;
   if (secret !== UPLOAD_SECRET) return res.status(401).json({ error: 'Secret invalide' });
@@ -145,26 +157,25 @@ app.post('/upload/lightspeed', upload.single('file'), (req, res) => {
     const rows = parseCSV(csvText);
     const agg = aggregateLS(rows);
 
-    // Stocker par date (les jours couverts par ce CSV)
-    Object.keys(agg.byDay).forEach(day => {
-      lsStore[day] = agg;
-    });
-    // Si byDay vide, stocker sous aujourd'hui
-    if (Object.keys(agg.byDay).length === 0) {
-      lsStore[new Date().toISOString().split('T')[0]] = agg;
+    const days = Object.keys(agg.byDay);
+    if (days.length === 0) {
+      const today = new Date().toISOString().split('T')[0];
+      lsStore[today] = agg;
+    } else {
+      days.forEach(day => { lsStore[day] = agg; });
     }
 
-    // Vider le cache dashboard
+    saveStore(); // Persister sur disque
     Object.keys(cache).filter(k => k.startsWith('dashboard:')).forEach(k => delete cache[k]);
-    console.log('CSV Lightspeed reçu —', rows.length, 'lignes —', Object.keys(agg.byDay).join(', '));
-    res.json({ ok: true, rows: rows.length, days: Object.keys(agg.byDay), totalCA: agg.totalCA });
+    console.log('CSV Lightspeed reçu —', rows.length, 'lignes —', days.join(', '));
+    res.json({ ok: true, rows: rows.length, days, totalCA: agg.totalCA });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── DASHBOARD ENDPOINT ─────────────────────────────────
+// ── DASHBOARD ──────────────────────────────────────────
 app.get('/dashboard', checkAuth, async (req, res) => {
   const { from, to } = req.query;
   if (!from || !to) return res.status(400).json({ error: 'from and to required' });
@@ -175,8 +186,6 @@ app.get('/dashboard', checkAuth, async (req, res) => {
 
   try {
     const dateParams = `date_from=${from}&date_to=${to}`;
-
-    // Yokitup data (CA global, achats, pertes)
     const [locs, orders, deliveries, losses] = await Promise.all([
       ykAll('/locations'),
       ykAll('/pos_orders', dateParams),
@@ -185,7 +194,6 @@ app.get('/dashboard', checkAuth, async (req, res) => {
     ]);
 
     const locMap = {}; locs.forEach(l => locMap[l.id] = l.name);
-
     const DIV = 1000000000;
     const totalCA_yk = orders.reduce((s, o) => s + parseInt(o.amount_including_tax || 0), 0);
     const nbOrders = orders.length;
@@ -193,26 +201,23 @@ app.get('/dashboard', checkAuth, async (req, res) => {
     const totalAchats = deliveries.reduce((s, d) => s + parseInt(d.received_amount_excluding_tax || 0), 0);
     const totalLosses = losses.reduce((s, l) => s + parseInt(l.cost || 0), 0);
 
-    // Yokitup by day (CA global)
     const byDay_yk = {};
     orders.forEach(o => { byDay_yk[o.date] = (byDay_yk[o.date] || 0) + parseInt(o.amount_including_tax || 0); });
 
-    // Recent orders
     const recentOrders = [...orders]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 30)
       .map(o => ({ date: o.date, cat: '—', loc: locMap[o.location_id] || '', amount: parseInt(o.amount_including_tax || 0) }));
 
-    // ── LIGHTSPEED DATA (si disponible) ─────────────────
-    // Agréger tous les lsStore dont la date est dans [from, to]
+    // Lightspeed data
     const lsDays = Object.keys(lsStore).filter(d => d >= from && d <= to);
     let lsAgg = null;
 
     if (lsDays.length > 0) {
-      // Fusionner les données LS des jours concernés
       const merged = { topItems: {}, byCat: {}, byGroup: {}, byDay: {}, totalCA: 0, totalHT: 0, totalTVA10: 0, totalTVA20: 0 };
       lsDays.forEach(day => {
         const ls = lsStore[day];
+        if (!ls) return;
         ls.topItems.forEach(item => {
           if (!merged.topItems[item.name]) merged.topItems[item.name] = { ...item, qty: 0, ca: 0, ht: 0 };
           merged.topItems[item.name].qty += item.qty;
@@ -231,9 +236,6 @@ app.get('/dashboard', checkAuth, async (req, res) => {
       lsAgg = merged;
     }
 
-    // ── CHOISIR LA SOURCE ────────────────────────────────
-    // CA : Yokitup (plus fiable pour le global)
-    // Top produits & catégories : Lightspeed si dispo
     const byDay = lsAgg && Object.keys(lsAgg.byDay).length > 0
       ? Object.fromEntries(Object.entries(lsAgg.byDay).map(([k, v]) => [k, Math.round(v * DIV)]))
       : byDay_yk;
@@ -243,27 +245,23 @@ app.get('/dashboard', checkAuth, async (req, res) => {
       ? lsAgg.topItems.map(p => ({ name: p.name, qty: Math.round(p.qty), ca: Math.round(p.ca * DIV), group: p.group }))
       : [];
 
-    // Food cost par groupe Lightspeed
-    let caFood = 0, caBev = 0, caSpr = 0;
+    let caFood = 0, caBev = 0;
     if (lsAgg) {
       Object.entries(lsAgg.byGroup).forEach(([grp, val]) => {
         const g = grp.toLowerCase();
-        if (g.includes('alcool') || g.includes('spirit') || g.includes('likkaz')) caSpr += val;
-        else if (g.includes('boisson') || g.includes('bar')) caBev += val;
+        if (g.includes('alcool') || g.includes('spirit') || g.includes('likkaz') || g.includes('bar')) caBev += val;
+        else if (g.includes('boisson')) caBev += val;
         else if (g.includes('cuisine') || g.includes('food')) caFood += val;
       });
     }
 
-    const lsAvailable = !!lsAgg;
-    const lsDaysCount = lsDays.length;
-
     const payload = {
-      meta: { locs: locs.map(l => l.name), nbOrders, from, to, lsAvailable, lsDaysCount },
+      meta: { locs: locs.map(l => l.name), nbOrders, from, to, lsAvailable: !!lsAgg, lsDaysCount: lsDays.length },
       kpis: { totalCA: totalCA_yk, ticket, totalAchats, totalLosses, nbOrders },
       byDay,
       byCat,
       topProds,
-      caByTag: { food: Math.round(caFood * DIV), bev: Math.round((caBev + caSpr) * DIV), usingQty: false, lsSource: lsAvailable },
+      caByTag: { food: Math.round(caFood * DIV), bev: Math.round(caBev * DIV), usingQty: false, lsSource: !!lsAgg },
       recentOrders,
       div: DIV
     };
