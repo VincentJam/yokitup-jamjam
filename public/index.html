@@ -3,132 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jamjerk — Dashboard</title>
+<title>Jamrock — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#FDFCF8;--surface:#fff;--border:#D3D1C7;--border2:#B4B2A9;
-    --text:#2C2C2A;--muted:#888780;--light:#F1EFE8;
-    --green:#3B6D11;--red:#A32D2D;--amber:#854F0B;
+    --bg:#F7F6F2;--surface:#FFFFFF;--surface2:#EFEDE8;
+    --border:#DDDBD4;--border2:#C8C5BC;
+    --text:#1A1916;--muted:#7A7870;--light:#F0EEE9;
+    --green:#2D6A1F;--red:#8B2020;--amber:#7A4A08;
+    --green-bg:#EBF4E8;--red-bg:#F5E8E8;--amber-bg:#F5EDE0;
   }
-  body{font-family:'Courier New',Courier,monospace;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+  .mono{font-family:'Courier Prime',monospace}
 
   header{
     display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
-    padding:14px 32px;border-bottom:1px solid var(--border);
-    position:sticky;top:0;background:var(--bg);z-index:100;
+    padding:16px 32px;border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:var(--surface);z-index:100;
   }
-  .logo{font-size:16px;letter-spacing:0.08em;color:var(--text)}
-  .badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
-  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+  .logo{font-family:'Courier Prime',monospace;font-size:18px;font-weight:700;color:var(--text);letter-spacing:0.04em}
+  .badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--light);padding:4px 10px;border-radius:20px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
   .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .psel{display:flex;gap:0;border:1px solid var(--border)}
-  .pbtn{font-family:'Courier New',Courier,monospace;font-size:11px;padding:4px 10px;border:none;border-right:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;letter-spacing:0.05em}
+  .psel{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .pbtn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 12px;border:none;border-right:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-weight:500}
   .pbtn:last-child{border-right:none}
-  .pbtn.active{background:var(--text);color:var(--bg)}
+  .pbtn.active{background:var(--text);color:#fff}
+  .pbtn:hover:not(.active){background:var(--light)}
+
   .cal-wrap{position:relative}
-  .cal-btn{font-family:'Courier New',Courier,monospace;font-size:11px;padding:4px 10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;letter-spacing:0.05em}
-  .cal-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
-  .cal-popup{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg);border:1px solid var(--border);padding:14px;z-index:200;min-width:270px;box-shadow:4px 4px 0 var(--border)}
+  .cal-btn{font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;font-weight:500;display:flex;align-items:center;gap:5px}
+  .cal-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+  .cal-popup{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;z-index:200;min-width:268px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
   .cal-popup.open{display:block}
-  .cal-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
-  .cpreset{font-family:'Courier New',Courier,monospace;font-size:10px;padding:3px 8px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;letter-spacing:0.04em}
-  .cpreset:hover{background:var(--light)}
+  .cal-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+  .cpreset{font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer}
+  .cpreset:hover{background:var(--light);color:var(--text)}
   .cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-  .cal-ml{font-size:12px;letter-spacing:0.06em}
-  .cnav{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px}
-  .cnav:hover{color:var(--text)}
+  .cal-ml{font-size:13px;font-weight:600;color:var(--text)}
+  .cnav{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:4px}
+  .cnav:hover{color:var(--text);background:var(--light)}
   .cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-  .cdow{font-size:9px;color:var(--muted);text-align:center;padding:4px 0;letter-spacing:0.05em}
-  .cday{font-size:11px;text-align:center;padding:5px 2px;cursor:pointer;border:none;background:none;color:var(--text);font-family:'Courier New',Courier,monospace}
+  .cdow{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-weight:500}
+  .cday{font-size:12px;text-align:center;padding:5px 2px;border-radius:4px;cursor:pointer;border:none;background:none;color:var(--text)}
   .cday:hover{background:var(--light)}
-  .cday.today{text-decoration:underline;font-weight:bold}
-  .cday.sel{background:var(--text);color:var(--bg)}
+  .cday.today{font-weight:600;color:var(--green)}
+  .cday.sel{background:var(--text);color:#fff}
   .cday.inr{background:var(--light)}
   .cday.empty{cursor:default;pointer-events:none}
   .cfooter{margin-top:10px;display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);padding-top:10px}
-  .cinput{font-family:'Courier New',Courier,monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;flex:1;min-width:0}
-  .capply{font-family:'Courier New',Courier,monospace;font-size:11px;padding:4px 12px;border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer;letter-spacing:0.05em}
-  .rfbtn{font-size:14px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px;font-family:'Courier New',Courier,monospace}
-  .rfbtn:hover{color:var(--text)}
+  .cinput{font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:5px 8px;flex:1;min-width:0}
+  .capply{font-size:12px;padding:5px 14px;border-radius:4px;border:none;background:var(--text);color:#fff;cursor:pointer;font-weight:500}
+  .rfbtn{font-size:16px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:5px 10px;line-height:1}
+  .rfbtn:hover{color:var(--text);border-color:var(--border2)}
 
-  main{padding:28px 32px;max-width:1200px;margin:0 auto}
+  main{padding:28px 32px;max-width:1280px;margin:0 auto}
 
-  .section-title{font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px}
+  .section-label{font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
 
-  .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);margin-bottom:24px}
-  .kcard{background:var(--surface);padding:18px 20px;border-right:1px solid var(--border)}
-  .kcard:last-child{border-right:none}
-  .klbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-  .kval{font-size:26px;color:var(--text);margin-bottom:4px;letter-spacing:-0.01em}
-  .ksub{font-size:10px;color:var(--muted)}
+  /* KPI GRID */
+  .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+  .kcard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px}
+  .klbl{font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:500;letter-spacing:0.02em}
+  .kval{font-family:'Courier Prime',monospace;font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.1}
+  .ksub{font-size:11px;color:var(--muted)}
 
-  .fcstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-top:none;margin-bottom:24px;background:var(--light)}
-  .fccard{padding:14px 20px;border-right:1px solid var(--border)}
-  .fccard:last-child{border-right:none}
-  .fclbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-  .fcval{font-size:20px;margin-bottom:4px}
-  .fcbar{height:2px;background:var(--border);margin-top:6px}
-  .fcfill{height:2px;transition:width 1s ease}
+  /* FC STRIP */
+  .fcstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+  .fccard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 22px}
+  .fclbl{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;letter-spacing:0.02em}
+  .fcval{font-family:'Courier Prime',monospace;font-size:22px;font-weight:700;margin-bottom:3px;line-height:1.2}
+  .fcbar{height:3px;background:var(--border);border-radius:2px;margin-top:8px}
+  .fcfill{height:3px;border-radius:2px;transition:width 1s ease}
+  .fcsub{font-size:11px;color:var(--muted);margin-top:5px}
+  .tag-ls{font-size:10px;background:var(--green-bg);color:var(--green);border-radius:3px;padding:1px 6px;margin-left:6px;font-weight:500}
+  .tag-yk{font-size:10px;background:var(--light);color:var(--muted);border-radius:3px;padding:1px 6px;margin-left:6px;font-weight:500}
 
-  .crow{display:grid;grid-template-columns:1.4fr 1fr;gap:0;border:1px solid var(--border);border-top:none;margin-bottom:0}
-  .ccard{padding:20px;border-right:1px solid var(--border)}
-  .ccard:last-child{border-right:none}
-  .ctitle{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+  /* CHARTS ROW */
+  .crow{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:12px}
+  .ccard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px}
+  .ctitle{font-size:12px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+  .ctitle-sub{font-size:11px;color:var(--muted);font-weight:400}
 
-  .barchart{display:flex;align-items:flex-end;gap:3px;height:120px;overflow-x:auto;padding-bottom:4px}
+  .barchart{display:flex;align-items:flex-end;gap:4px;height:130px;overflow-x:auto;padding-bottom:4px}
   .bcol{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
-  .binn{display:flex;align-items:flex-end;height:95px;width:100%}
-  .bar{flex:1;cursor:pointer;transition:opacity .2s;background:var(--text)}
+  .binn{display:flex;align-items:flex-end;height:100px;width:100%}
+  .bar{flex:1;border-radius:3px 3px 0 0;cursor:pointer;background:var(--text);transition:opacity .15s}
   .bar:hover{opacity:.6}
-  .blbl{font-size:8px;color:var(--muted);text-align:center;white-space:nowrap;letter-spacing:0.03em}
+  .blbl{font-size:9px;color:var(--muted);text-align:center;white-space:nowrap}
 
-  .catlist{display:flex;flex-direction:column}
-  .catitem{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+  .catlist{display:flex;flex-direction:column;gap:0}
+  .catitem{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
   .catitem:last-child{border-bottom:none}
-  .catdash{font-size:11px;color:var(--muted)}
-  .catnm{flex:1;font-size:12px}
-  .catv{font-size:11px;color:var(--muted)}
+  .catbar{height:3px;flex:1;background:var(--border);border-radius:2px;overflow:hidden}
+  .catbarfill{height:100%;border-radius:2px;background:var(--text)}
+  .catnm{font-size:13px;color:var(--text);min-width:90px}
+  .catv{font-family:'Courier Prime',monospace;font-size:13px;color:var(--muted);text-align:right;min-width:70px}
 
-  .brow{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-top:1px solid var(--border);margin-top:-1px}
-  .pitem{display:flex;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);gap:8px}
+  /* BOTTOM ROW */
+  .brow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pitem{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px}
   .pitem:last-child{border-bottom:none}
-  .prank{font-size:10px;color:var(--muted);width:18px;flex-shrink:0}
-  .pname{flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pca{font-size:12px;color:var(--muted);flex-shrink:0}
+  .prank{font-family:'Courier Prime',monospace;font-size:12px;color:var(--muted);width:22px;flex-shrink:0}
+  .pname{font-size:13px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pgroup{font-size:10px;color:var(--muted);background:var(--light);border-radius:3px;padding:1px 6px;flex-shrink:0}
+  .pca{font-family:'Courier Prime',monospace;font-size:13px;color:var(--text);flex-shrink:0;min-width:60px;text-align:right}
 
-  .olist{display:flex;flex-direction:column;max-height:280px;overflow-y:auto}
-  .oitem{display:flex;align-items:baseline;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+  .olist{display:flex;flex-direction:column;max-height:340px;overflow-y:auto}
+  .oitem{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
   .oitem:last-child{border-bottom:none}
-  .odate{font-size:10px;color:var(--muted);margin-right:8px}
-  .ocat{font-size:10px;color:var(--muted);margin-right:6px;border:1px solid var(--border);padding:1px 4px}
-  .oamt{font-size:12px}
+  .odate{font-family:'Courier Prime',monospace;font-size:12px;color:var(--muted);margin-right:8px}
+  .oloc{font-size:12px;color:var(--text)}
+  .oamt{font-family:'Courier Prime',monospace;font-size:14px;font-weight:700;color:var(--text)}
 
-  .loading{text-align:center;padding:60px 0;color:var(--muted);font-size:12px;letter-spacing:0.1em}
-  .errbox{border:1px solid var(--red);padding:12px 16px;color:var(--red);font-size:11px;margin-bottom:20px}
-  .cached-tag{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:1px 6px;letter-spacing:0.05em}
+  .loading{text-align:center;padding:80px 0;color:var(--muted);font-size:13px}
+  .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .errbox{border:1px solid var(--red);background:var(--red-bg);border-radius:8px;padding:14px 18px;color:var(--red);font-size:13px;margin-bottom:20px}
+  .cached-tag{font-size:10px;color:var(--muted);background:var(--light);border-radius:3px;padding:2px 7px;font-weight:500}
+  .ls-tag{font-size:10px;color:var(--green);background:var(--green-bg);border-radius:3px;padding:2px 7px;font-weight:500}
 
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .fi{animation:fadeIn .3s ease both}
 
-  .divider{border:none;border-top:1px solid var(--border);margin:24px 0}
-
-  @media(max-width:900px){
+  @media(max-width:960px){
     .kgrid,.fcstrip{grid-template-columns:repeat(2,1fr)}
-    .kcard,.fccard{border-bottom:1px solid var(--border)}
     .crow,.brow{grid-template-columns:1fr}
-    .ccard{border-right:none;border-bottom:1px solid var(--border)}
     header,main{padding:12px 16px}
   }
 </style>
 </head>
 <body>
 <header>
-  <div style="display:flex;align-items:center;gap:14px">
-    <div class="logo" id="rname">DASHBOARD</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo" id="rname">JAMROCK</div>
     <div class="badge"><span class="dot"></span><span id="status">connexion...</span></div>
     <span class="cached-tag" id="cache-tag" style="display:none">cache</span>
+    <span class="ls-tag" id="ls-tag" style="display:none">Lightspeed</span>
   </div>
   <div class="controls">
     <div class="psel">
@@ -138,7 +152,7 @@
       <button class="pbtn" onclick="preset(90,this)">3M</button>
     </div>
     <div class="cal-wrap">
-      <button class="cal-btn" id="cbtn" onclick="togCal()">CAL. <span id="clbl">PERSO</span></button>
+      <button class="cal-btn" id="cbtn" onclick="togCal()">📅 <span id="clbl">Personnalisé</span></button>
       <div class="cal-popup" id="cpop">
         <div class="cal-presets">
           <button class="cpreset" onclick="qpick('today')">Aujourd'hui</button>
@@ -149,31 +163,31 @@
           <button class="cpreset" onclick="qpick('lastmonth')">Mois passé</button>
         </div>
         <div class="cal-hdr">
-          <button class="cnav" onclick="ncal(-1)">&#8249;</button>
+          <button class="cnav" onclick="ncal(-1)">‹</button>
           <div class="cal-ml" id="cml"></div>
-          <button class="cnav" onclick="ncal(1)">&#8250;</button>
+          <button class="cnav" onclick="ncal(1)">›</button>
         </div>
         <div class="cgrid" id="cgrid"></div>
         <div class="cfooter">
           <input class="cinput" type="date" id="ifrom">
-          <span style="color:var(--muted)">—</span>
+          <span style="color:var(--muted)">→</span>
           <input class="cinput" type="date" id="ito">
           <button class="capply" onclick="applyD()">OK</button>
         </div>
       </div>
     </div>
-    <button class="rfbtn" onclick="load(true)" title="Rafraîchir">&#8635;</button>
+    <button class="rfbtn" onclick="load(true)" title="Forcer le refresh">↺</button>
   </div>
 </header>
 
 <main>
   <div id="err" style="display:none" class="errbox"></div>
-  <div id="root"><div class="loading">— chargement en cours —</div></div>
+  <div id="root"><div class="loading"><div class="spinner"></div><br>Chargement des données...</div></div>
 </main>
 
 <script>
 const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const CATS_COLORS=['#2C2C2A','#888780','#B4B2A9','#5F5E5A','#444441','#D3D1C7'];
+const CAT_COLORS=['#1A1916','#4A4840','#7A7870','#AAA8A0','#DDDBD4','#C8C5BC'];
 let _days=30,_from=null,_to=null,_custom=false;
 let _cy=new Date().getFullYear(),_cm=new Date().getMonth();
 let _sf=null,_st=null;
@@ -181,14 +195,14 @@ let _sf=null,_st=null;
 function gf(){if(_custom&&_from)return _from;const d=new Date();d.setDate(d.getDate()-_days);return iso(d)}
 function gt(){return(_custom&&_to)?_to:iso(new Date())}
 function iso(d){return d.toISOString().split('T')[0]}
-function lbl(f,t){const s=v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});return f===t?s(f):s(f)+' / '+s(t)}
+function lbl(f,t){const s=v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});return f===t?s(f):s(f)+' → '+s(t)}
 
 function preset(d,btn){
   _days=d;_custom=false;
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('cbtn').classList.remove('active');
-  document.getElementById('clbl').textContent='PERSO';
+  document.getElementById('clbl').textContent='Personnalisé';
   closeCal();load();
 }
 
@@ -198,7 +212,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.cal-wrap'))closeCal
 function ncal(d){_cm+=d;if(_cm>11){_cm=0;_cy++}if(_cm<0){_cm=11;_cy--}rcal()}
 
 function rcal(){
-  document.getElementById('cml').textContent=MONTHS[_cm].toUpperCase()+' '+_cy;
+  document.getElementById('cml').textContent=MONTHS[_cm]+' '+_cy;
   const today=iso(new Date());
   let h=['L','M','M','J','V','S','D'].map(d=>`<div class="cdow">${d}</div>`).join('');
   let dow=new Date(_cy,_cm,1).getDay();if(dow===0)dow=7;
@@ -230,7 +244,7 @@ function applyD(){
   _from=f;_to=t;_custom=true;_sf=f;_st=t;
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('cbtn').classList.add('active');
-  document.getElementById('clbl').textContent=lbl(f,t).toUpperCase();
+  document.getElementById('clbl').textContent=lbl(f,t);
   closeCal();load();
 }
 
@@ -248,28 +262,32 @@ function qpick(k){
   _from=f;_to=t;_custom=true;
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('cbtn').classList.add('active');
-  document.getElementById('clbl').textContent=lbl(f,t).toUpperCase();
+  document.getElementById('clbl').textContent=lbl(f,t);
   closeCal();load();
 }
 
 async function load(force=false){
   document.getElementById('err').style.display='none';
-  document.getElementById('root').innerHTML='<div class="loading">— chargement en cours —</div>';
+  document.getElementById('root').innerHTML='<div class="loading"><div class="spinner"></div><br>Chargement des données...</div>';
   document.getElementById('status').textContent='connexion...';
   document.getElementById('cache-tag').style.display='none';
+  document.getElementById('ls-tag').style.display='none';
   const from=gf(),to=gt();
   try{
     const r=await fetch(`/dashboard?from=${from}&to=${to}`+(force?'&nc=1':''));
     if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
+
     if(d.meta?.locs?.length)document.getElementById('rname').textContent=d.meta.locs[0].toUpperCase();
-    document.getElementById('status').textContent=(d.meta?.locs?.length||0)+' établ.';
+    document.getElementById('status').textContent=(d.meta?.locs?.length||0)+' établissement'+(d.meta?.locs?.length>1?'s':'');
     if(d.cached)document.getElementById('cache-tag').style.display='inline';
+    if(d.meta?.lsAvailable)document.getElementById('ls-tag').style.display='inline';
 
     const DIV=d.div||1000000000;
     const fmt=n=>(parseInt(n||0)/DIV).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
     const pct=v=>Math.round(v*10)/10+'%';
     const fcc=v=>v<28?'var(--green)':v<35?'var(--amber)':'var(--red)';
+    const fccbg=v=>v<28?'var(--green-bg)':v<35?'var(--amber-bg)':'var(--red-bg)';
     const periodLbl=_custom?lbl(from,to):_days+' derniers jours';
     const caTotal=d.kpis.totalCA||1;
     const fcG=d.kpis.totalAchats>0?(d.kpis.totalAchats/caTotal*100):null;
@@ -277,67 +295,87 @@ async function load(force=false){
     const dk=Object.keys(byDay).sort();
     const maxD=Math.max(...dk.map(k=>byDay[k]),1);
     const dlbl=dk.map(v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}));
-    const barW=Math.max(16,Math.min(36,Math.floor(520/Math.max(dk.length,1))));
+    const barW=Math.max(18,Math.min(42,Math.floor(580/Math.max(dk.length,1))));
     const sortedCats=Object.entries(d.byCat||{}).sort((a,b)=>b[1]-a[1]);
+    const maxCat=sortedCats.length?sortedCats[0][1]:1;
     const topP=d.topProds||[];
     const maxP=topP.length?Math.max(...topP.map(p=>p.ca>0?p.ca:p.qty),1):1;
     const usingQty=d.caByTag?.usingQty;
     const caFood=d.caByTag?.food||0;
-    const caBev=(d.caByTag?.bev||0)+(d.caByTag?.spr||0);
+    const caBev=d.caByTag?.bev||0;
+    const lsSrc=d.caByTag?.lsSource;
 
     document.getElementById('root').innerHTML=`
-      <div class="section-title fi">— résumé · ${periodLbl}</div>
-
       <div class="kgrid fi">
-        <div class="kcard"><div class="klbl">Chiffre d'affaires</div><div class="kval">${fmt(d.kpis.totalCA)}</div><div class="ksub">${periodLbl}</div></div>
-        <div class="kcard"><div class="klbl">Commandes</div><div class="kval">${(d.kpis.nbOrders||0).toLocaleString('fr-FR')}</div><div class="ksub">orders POS</div></div>
-        <div class="kcard"><div class="klbl">Ticket moyen</div><div class="kval">${fmt(d.kpis.ticket)}</div><div class="ksub">par commande</div></div>
-        <div class="kcard"><div class="klbl">Achats matières</div><div class="kval">${fmt(d.kpis.totalAchats)}</div><div class="ksub">BL reçus</div></div>
+        <div class="kcard">
+          <div class="klbl">Chiffre d'affaires</div>
+          <div class="kval">${fmt(d.kpis.totalCA)}</div>
+          <div class="ksub">${periodLbl}</div>
+        </div>
+        <div class="kcard">
+          <div class="klbl">Commandes POS</div>
+          <div class="kval">${(d.kpis.nbOrders||0).toLocaleString('fr-FR')}</div>
+          <div class="ksub">${periodLbl}</div>
+        </div>
+        <div class="kcard">
+          <div class="klbl">Ticket moyen</div>
+          <div class="kval">${fmt(d.kpis.ticket)}</div>
+          <div class="ksub">par commande</div>
+        </div>
+        <div class="kcard">
+          <div class="klbl">Achats matières</div>
+          <div class="kval">${fmt(d.kpis.totalAchats)}</div>
+          <div class="ksub">bons de livraison reçus</div>
+        </div>
       </div>
 
       <div class="fcstrip fi">
-        <div class="fccard">
+        <div class="fccard" style="${fcG!==null?'background:'+fccbg(fcG):''}">
           <div class="fclbl">Food cost global</div>
-          ${fcG!==null?`<div class="fcval" style="color:${fcc(fcG)}">${pct(fcG)}</div><div class="fcbar"><div class="fcfill" style="width:${Math.min(fcG,100)}%;background:${fcc(fcG)}"></div></div>`:'<div class="fcval" style="color:var(--muted)">—</div>'}
-          <div class="ksub" style="margin-top:5px">achats HT / CA TTC</div>
+          ${fcG!==null
+            ?`<div class="fcval" style="color:${fcc(fcG)}">${pct(fcG)}</div>
+              <div class="fcbar"><div class="fcfill" style="width:${Math.min(fcG,100)}%;background:${fcc(fcG)}"></div></div>`
+            :`<div class="fcval" style="color:var(--muted)">—</div>`}
+          <div class="fcsub">achats HT / CA TTC</div>
         </div>
         <div class="fccard">
-          <div class="fclbl">CA cuisine</div>
+          <div class="fclbl">CA cuisine ${lsSrc?'<span class="tag-ls">LS</span>':'<span class="tag-yk">YK</span>'}</div>
           <div class="fcval">${caFood>0?fmt(caFood):'—'}</div>
-          <div class="ksub" style="margin-top:5px">${caFood>0?Math.round(caFood/caTotal*100)+'% du CA':'tags non détectés'}</div>
+          <div class="fcsub">${caFood>0?Math.round(caFood/caTotal*100)+'% du CA total':'données non disponibles'}</div>
         </div>
         <div class="fccard">
-          <div class="fclbl">CA boissons</div>
+          <div class="fclbl">CA boissons ${lsSrc?'<span class="tag-ls">LS</span>':'<span class="tag-yk">YK</span>'}</div>
           <div class="fcval">${caBev>0?fmt(caBev):'—'}</div>
-          <div class="ksub" style="margin-top:5px">${caBev>0?Math.round(caBev/caTotal*100)+'% du CA':'tags non détectés'}</div>
+          <div class="fcsub">${caBev>0?Math.round(caBev/caTotal*100)+'% du CA total':'données non disponibles'}</div>
         </div>
-        <div class="fccard">
+        <div class="fccard" style="${d.kpis.totalLosses>0?'background:var(--red-bg)':''}">
           <div class="fclbl">Pertes & casses</div>
           <div class="fcval" style="color:${d.kpis.totalLosses>0?'var(--red)':'var(--muted)'}">${d.kpis.totalLosses>0?fmt(d.kpis.totalLosses):'—'}</div>
-          <div class="ksub" style="margin-top:5px">${d.kpis.totalLosses>0?Math.round(d.kpis.totalLosses/caTotal*100)+'% du CA':'aucune perte saisie'}</div>
+          <div class="fcsub">${d.kpis.totalLosses>0?Math.round(d.kpis.totalLosses/caTotal*100)+'% du CA':'aucune perte saisie'}</div>
         </div>
       </div>
 
       <div class="crow fi">
         <div class="ccard">
-          <div class="ctitle">— CA par jour</div>
+          <div class="ctitle">CA par jour <span class="ctitle-sub">${periodLbl}</span></div>
           <div class="barchart">
             ${dk.map((k,i)=>`
               <div class="bcol" style="width:${barW}px">
                 <div class="binn"><div class="bar" style="height:${Math.round(byDay[k]/maxD*100)}%" title="${dlbl[i]} — ${fmt(byDay[k])}"></div></div>
-                <div class="blbl">${dk.length<=20?dlbl[i]:i%Math.ceil(dk.length/8)===0?dlbl[i]:''}</div>
+                <div class="blbl">${dk.length<=18?dlbl[i]:i%Math.ceil(dk.length/8)===0?dlbl[i]:''}</div>
               </div>`).join('')}
           </div>
         </div>
         <div class="ccard">
-          <div class="ctitle">— catégories POS</div>
+          <div class="ctitle">Catégories ${lsSrc?'<span class="tag-ls" style="font-size:10px">Lightspeed</span>':'<span class="tag-yk" style="font-size:10px">Yokitup</span>'}</div>
           <div class="catlist">
-            ${sortedCats.length===0?'<div style="color:var(--muted);padding:8px 0">aucune catégorie configurée</div>':
-              sortedCats.map(([n,v],i)=>`
+            ${sortedCats.length===0
+              ?'<div style="color:var(--muted);font-size:13px;padding:12px 0">Aucune catégorie disponible</div>'
+              :sortedCats.map(([n,v],i)=>`
                 <div class="catitem">
-                  <span class="catdash" style="color:${CATS_COLORS[i%CATS_COLORS.length]}">■</span>
                   <span class="catnm">${n}</span>
-                  <span class="catv">${fmt(v)} · ${Math.round(v/caTotal*100)}%</span>
+                  <div class="catbar"><div class="catbarfill" style="width:${Math.round(v/maxCat*100)}%"></div></div>
+                  <span class="catv">${fmt(v)}</span>
                 </div>`).join('')}
           </div>
         </div>
@@ -345,21 +383,26 @@ async function load(force=false){
 
       <div class="brow fi">
         <div class="ccard">
-          <div class="ctitle">— top produits · ${usingQty?'par quantité':'par CA'}</div>
-          ${topP.length===0?'<div style="color:var(--muted)">aucune donnée article</div>':
-            topP.map((p,i)=>`
+          <div class="ctitle">Top produits <span class="ctitle-sub">${lsSrc?'Lightspeed · par CA':usingQty?'par quantité':'par CA'}</span></div>
+          ${topP.length===0
+            ?'<div style="color:var(--muted);font-size:13px;padding:12px 0">En attente du CSV Lightspeed quotidien</div>'
+            :topP.map((p,i)=>`
               <div class="pitem">
                 <span class="prank">${String(i+1).padStart(2,'0')}.</span>
                 <span class="pname">${p.name||'—'}</span>
-                <span class="pca">${usingQty?Math.round(p.qty)+' ventes':fmt(p.ca)}</span>
+                ${p.group?`<span class="pgroup">${p.group}</span>`:''}
+                <span class="pca">${lsSrc||!usingQty?fmt(p.ca):Math.round(p.qty)+' vte'}</span>
               </div>`).join('')}
         </div>
         <div class="ccard">
-          <div class="ctitle">— dernières commandes</div>
+          <div class="ctitle">Dernières commandes</div>
           <div class="olist">
             ${(d.recentOrders||[]).map(o=>`
               <div class="oitem">
-                <div><span class="odate">${o.date}</span><span class="ocat">${o.cat}</span><span style="font-size:10px;color:var(--muted)">${o.loc}</span></div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="odate">${o.date}</span>
+                  <span class="oloc">${o.loc||'—'}</span>
+                </div>
                 <span class="oamt">${fmt(o.amount)}</span>
               </div>`).join('')}
           </div>
