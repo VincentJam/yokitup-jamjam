@@ -6,143 +6,180 @@
 <title>Jamrock — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#F7F6F2;--surface:#FFFFFF;--surface2:#EFEDE8;
-    --border:#DDDBD4;--border2:#C8C5BC;
-    --text:#1A1916;--muted:#7A7870;--light:#F0EEE9;
-    --green:#2D6A1F;--red:#8B2020;--amber:#7A4A08;
-    --green-bg:#EBF4E8;--red-bg:#F5E8E8;--amber-bg:#F5EDE0;
-  }
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
-  .mono{font-family:'Courier Prime',monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F6F2;--surface:#FFF;--surface2:#EFEDE8;
+  --border:#DDDBD4;--border2:#C8C5BC;
+  --text:#1A1916;--muted:#7A7870;--light:#F0EEE9;
+  --green:#2D6A1F;--green-bg:#EBF4E8;--green-light:#C0DD97;
+  --red:#8B2020;--red-bg:#F5E8E8;
+  --amber:#7A4A08;--amber-bg:#F5EDE0;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+.mono{font-family:'Courier Prime',monospace}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 
-  header{
-    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
-    padding:16px 32px;border-bottom:1px solid var(--border);
-    position:sticky;top:0;background:var(--surface);z-index:100;
-  }
-  .logo{font-family:'Courier Prime',monospace;font-size:18px;font-weight:700;color:var(--text);letter-spacing:0.04em}
-  .badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--light);padding:4px 10px;border-radius:20px}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:100}
+.logo{font-family:'Courier Prime',monospace;font-size:17px;font-weight:700;letter-spacing:0.04em}
+.badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);background:var(--light);padding:3px 10px;border-radius:20px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tag{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:500}
+.tag-ls{background:var(--green-bg);color:var(--green)}
+.tag-cache{background:var(--light);color:var(--muted)}
 
-  .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .psel{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
-  .pbtn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 12px;border:none;border-right:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-weight:500}
-  .pbtn:last-child{border-right:none}
-  .pbtn.active{background:var(--text);color:#fff}
-  .pbtn:hover:not(.active){background:var(--light)}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.psel{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.pbtn{font-size:12px;padding:5px 11px;border:none;border-right:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-weight:500;font-family:'Inter',sans-serif}
+.pbtn:last-child{border-right:none}
+.pbtn.active{background:var(--text);color:#fff}
+.pbtn:hover:not(.active){background:var(--light)}
+.cal-wrap{position:relative}
+.cal-btn{font-size:12px;padding:5px 11px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;font-weight:500;display:flex;align-items:center;gap:5px}
+.cal-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.cal-popup{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;z-index:200;min-width:268px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.cal-popup.open{display:block}
+.cal-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.cpreset{font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif}
+.cpreset:hover{background:var(--light);color:var(--text)}
+.cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-ml{font-size:13px;font-weight:600}
+.cnav{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:2px 6px;border-radius:4px}
+.cnav:hover{color:var(--text);background:var(--light)}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cdow{font-size:10px;color:var(--muted);text-align:center;padding:3px 0;font-weight:500}
+.cday{font-size:11px;text-align:center;padding:5px 2px;border-radius:4px;cursor:pointer;border:none;background:none;color:var(--text);font-family:'Inter',sans-serif}
+.cday:hover{background:var(--light)}
+.cday.today{font-weight:600;color:var(--green)}
+.cday.sel{background:var(--text);color:#fff}
+.cday.inr{background:var(--light)}
+.cday.empty{cursor:default;pointer-events:none}
+.cfooter{margin-top:10px;display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);padding-top:10px}
+.cinput{font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;flex:1;min-width:0;font-family:'Inter',sans-serif}
+.capply{font-size:12px;padding:4px 12px;border-radius:4px;border:none;background:var(--text);color:#fff;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif}
+.rfbtn{font-size:14px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:4px 9px;line-height:1.2}
+.rfbtn:hover{color:var(--text)}
 
-  .cal-wrap{position:relative}
-  .cal-btn{font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;font-weight:500;display:flex;align-items:center;gap:5px}
-  .cal-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
-  .cal-popup{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;z-index:200;min-width:268px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
-  .cal-popup.open{display:block}
-  .cal-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
-  .cpreset{font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer}
-  .cpreset:hover{background:var(--light);color:var(--text)}
-  .cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-  .cal-ml{font-size:13px;font-weight:600;color:var(--text)}
-  .cnav{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:4px}
-  .cnav:hover{color:var(--text);background:var(--light)}
-  .cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-  .cdow{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-weight:500}
-  .cday{font-size:12px;text-align:center;padding:5px 2px;border-radius:4px;cursor:pointer;border:none;background:none;color:var(--text)}
-  .cday:hover{background:var(--light)}
-  .cday.today{font-weight:600;color:var(--green)}
-  .cday.sel{background:var(--text);color:#fff}
-  .cday.inr{background:var(--light)}
-  .cday.empty{cursor:default;pointer-events:none}
-  .cfooter{margin-top:10px;display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);padding-top:10px}
-  .cinput{font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:5px 8px;flex:1;min-width:0}
-  .capply{font-size:12px;padding:5px 14px;border-radius:4px;border:none;background:var(--text);color:#fff;cursor:pointer;font-weight:500}
-  .rfbtn{font-size:16px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:5px 10px;line-height:1}
-  .rfbtn:hover{color:var(--text);border-color:var(--border2)}
+main{padding:24px 28px;max-width:1300px;margin:0 auto}
 
-  main{padding:28px 32px;max-width:1280px;margin:0 auto}
+/* OBJECTIF BANNER */
+.obj-banner{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 20px;margin-bottom:12px;display:flex;align-items:center;gap:20px}
+.obj-label{font-size:12px;color:var(--muted);font-weight:500;flex-shrink:0}
+.obj-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.obj-fill{height:100%;border-radius:3px;transition:width 1s ease}
+.obj-pct{font-family:'Courier Prime',monospace;font-size:14px;font-weight:700;flex-shrink:0;min-width:45px;text-align:right}
+.obj-input-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.obj-input{font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 8px;width:90px;font-family:'Courier Prime',monospace;text-align:right}
+.obj-save{font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif}
+.obj-save:hover{background:var(--text);color:#fff;border-color:var(--text)}
 
-  .section-label{font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
+/* ROW 1 — CA + Ticket + Split */
+.row1{display:grid;grid-template-columns:1.2fr 1fr 1.6fr;gap:12px;margin-bottom:12px}
+.kcard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.klbl{font-size:11px;color:var(--muted);margin-bottom:7px;font-weight:500}
+.kval{font-family:'Courier Prime',monospace;font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
+.ksub{font-size:11px;color:var(--muted)}
+.ksub-green{font-size:11px;color:var(--green);font-weight:500}
+.ksub-red{font-size:11px;color:var(--red);font-weight:500}
 
-  /* KPI GRID */
-  .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
-  .kcard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px}
-  .klbl{font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:500;letter-spacing:0.02em}
-  .kval{font-family:'Courier Prime',monospace;font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.1}
-  .ksub{font-size:11px;color:var(--muted)}
+/* SPLIT CARD */
+.split-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px}
+.split-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.split-title{font-size:11px;color:var(--muted);font-weight:500}
+.split-total{font-family:'Courier Prime',monospace;font-size:22px;font-weight:700}
+.split-bars{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px}
+.split-bar-food{background:var(--text);transition:width .8s ease}
+.split-bar-bev{background:var(--border2);transition:width .8s ease}
+.split-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.split-items{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.split-item{display:flex;flex-direction:column;gap:2px}
+.split-item-label{font-size:10px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase}
+.split-item-val{font-family:'Courier Prime',monospace;font-size:15px;font-weight:700}
+.split-item-sub{font-size:10px;color:var(--muted)}
 
-  /* FC STRIP */
-  .fcstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
-  .fccard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 22px}
-  .fclbl{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;letter-spacing:0.02em}
-  .fcval{font-family:'Courier Prime',monospace;font-size:22px;font-weight:700;margin-bottom:3px;line-height:1.2}
-  .fcbar{height:3px;background:var(--border);border-radius:2px;margin-top:8px}
-  .fcfill{height:3px;border-radius:2px;transition:width 1s ease}
-  .fcsub{font-size:11px;color:var(--muted);margin-top:5px}
-  .tag-ls{font-size:10px;background:var(--green-bg);color:var(--green);border-radius:3px;padding:1px 6px;margin-left:6px;font-weight:500}
-  .tag-yk{font-size:10px;background:var(--light);color:var(--muted);border-radius:3px;padding:1px 6px;margin-left:6px;font-weight:500}
+/* ROW 2 — Food cost + Marge */
+.row2{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.fccard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
+.fclbl{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.fcval{font-family:'Courier Prime',monospace;font-size:24px;font-weight:700;line-height:1;margin-bottom:4px}
+.fcbar{height:3px;background:var(--border);border-radius:2px;margin-top:8px}
+.fcfill{height:3px;border-radius:2px;transition:width 1s ease}
+.fcsub{font-size:11px;color:var(--muted);margin-top:5px}
 
-  /* CHARTS ROW */
-  .crow{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:12px}
-  .ccard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px}
-  .ctitle{font-size:12px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
-  .ctitle-sub{font-size:11px;color:var(--muted);font-weight:400}
+/* ROW 3 — Chart + Catégories */
+.row3{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:12px}
+.ccard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px}
+.ctitle{font-size:12px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.ctitle-sub{font-size:11px;color:var(--muted);font-weight:400}
 
-  .barchart{display:flex;align-items:flex-end;gap:4px;height:130px;overflow-x:auto;padding-bottom:4px}
-  .bcol{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
-  .binn{display:flex;align-items:flex-end;height:100px;width:100%}
-  .bar{flex:1;border-radius:3px 3px 0 0;cursor:pointer;background:var(--text);transition:opacity .15s}
-  .bar:hover{opacity:.6}
-  .blbl{font-size:9px;color:var(--muted);text-align:center;white-space:nowrap}
+.barchart{display:flex;align-items:flex-end;gap:4px;height:130px;overflow-x:auto;padding-bottom:4px}
+.bcol{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;position:relative}
+.binn{display:flex;align-items:flex-end;height:100px;width:100%}
+.bar{flex:1;border-radius:3px 3px 0 0;background:var(--text);cursor:pointer;transition:opacity .15s;position:relative}
+.bar:hover{opacity:.65}
+.bar-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:11px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-family:'Courier Prime',monospace}
+.bar:hover .bar-tooltip{display:block}
+.blbl{font-size:9px;color:var(--muted);text-align:center;white-space:nowrap}
 
-  .catlist{display:flex;flex-direction:column;gap:0}
-  .catitem{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
-  .catitem:last-child{border-bottom:none}
-  .catbar{height:3px;flex:1;background:var(--border);border-radius:2px;overflow:hidden}
-  .catbarfill{height:100%;border-radius:2px;background:var(--text)}
-  .catnm{font-size:13px;color:var(--text);min-width:90px}
-  .catv{font-family:'Courier Prime',monospace;font-size:13px;color:var(--muted);text-align:right;min-width:70px}
+.catlist{display:flex;flex-direction:column}
+.catitem{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.catitem:last-child{border-bottom:none}
+.catnm{font-size:13px;flex:1}
+.catbar-wrap{width:80px;height:3px;background:var(--border);border-radius:2px;flex-shrink:0}
+.catbar-fill{height:3px;background:var(--text);border-radius:2px;transition:width .6s ease}
+.catv{font-family:'Courier Prime',monospace;font-size:12px;color:var(--muted);min-width:55px;text-align:right}
 
-  /* BOTTOM ROW */
-  .brow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .pitem{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px}
-  .pitem:last-child{border-bottom:none}
-  .prank{font-family:'Courier Prime',monospace;font-size:12px;color:var(--muted);width:22px;flex-shrink:0}
-  .pname{font-size:13px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pgroup{font-size:10px;color:var(--muted);background:var(--light);border-radius:3px;padding:1px 6px;flex-shrink:0}
-  .pca{font-family:'Courier Prime',monospace;font-size:13px;color:var(--text);flex-shrink:0;min-width:60px;text-align:right}
+/* ROW 4 — Cocktails + Top produits + Dernières commandes */
+.row4{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:12px}
 
-  .olist{display:flex;flex-direction:column;max-height:340px;overflow-y:auto}
-  .oitem{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
-  .oitem:last-child{border-bottom:none}
-  .odate{font-family:'Courier Prime',monospace;font-size:12px;color:var(--muted);margin-right:8px}
-  .oloc{font-size:12px;color:var(--text)}
-  .oamt{font-family:'Courier Prime',monospace;font-size:14px;font-weight:700;color:var(--text)}
+.cocktail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.cocktail-card{border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.cocktail-label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px}
+.cocktail-val{font-family:'Courier Prime',monospace;font-size:18px;font-weight:700}
+.cocktail-sub{font-size:10px;color:var(--muted);margin-top:2px}
 
-  .loading{text-align:center;padding:80px 0;color:var(--muted);font-size:13px}
-  .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .errbox{border:1px solid var(--red);background:var(--red-bg);border-radius:8px;padding:14px 18px;color:var(--red);font-size:13px;margin-bottom:20px}
-  .cached-tag{font-size:10px;color:var(--muted);background:var(--light);border-radius:3px;padding:2px 7px;font-weight:500}
-  .ls-tag{font-size:10px;color:var(--green);background:var(--green-bg);border-radius:3px;padding:2px 7px;font-weight:500}
+.pitem{display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);gap:8px}
+.pitem:last-child{border-bottom:none}
+.prank{font-family:'Courier Prime',monospace;font-size:11px;color:var(--muted);width:20px;flex-shrink:0}
+.pname{font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgroup{font-size:9px;color:var(--muted);background:var(--light);border-radius:3px;padding:1px 5px;flex-shrink:0;letter-spacing:0.03em}
+.pca{font-family:'Courier Prime',monospace;font-size:12px;flex-shrink:0;min-width:52px;text-align:right}
 
-  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-  .fi{animation:fadeIn .3s ease both}
+.olist{max-height:320px;overflow-y:auto}
+.oitem{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border)}
+.oitem:last-child{border-bottom:none}
+.odate{font-family:'Courier Prime',monospace;font-size:11px;color:var(--muted);margin-right:8px}
+.oloc{font-size:12px}
+.oamt{font-family:'Courier Prime',monospace;font-size:13px;font-weight:700}
 
-  @media(max-width:960px){
-    .kgrid,.fcstrip{grid-template-columns:repeat(2,1fr)}
-    .crow,.brow{grid-template-columns:1fr}
-    header,main{padding:12px 16px}
-  }
+.loading{text-align:center;padding:80px 0;color:var(--muted);font-size:13px}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.errbox{border:1px solid var(--red);background:var(--red-bg);border-radius:8px;padding:14px 18px;color:var(--red);font-size:13px;margin-bottom:20px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fadeUp .35s ease both}
+.fi2{animation:fadeUp .35s ease .1s both}
+.fi3{animation:fadeUp .35s ease .2s both}
+.fi4{animation:fadeUp .35s ease .3s both}
+
+@media(max-width:1000px){
+  .row1{grid-template-columns:1fr 1fr}
+  .split-card{grid-column:span 2}
+  .row2{grid-template-columns:repeat(2,1fr)}
+  .row3,.row4{grid-template-columns:1fr}
+  header,main{padding:12px 14px}
+}
 </style>
 </head>
 <body>
 <header>
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:10px">
     <div class="logo" id="rname">JAMROCK</div>
-    <div class="badge"><span class="dot"></span><span id="status">connexion...</span></div>
-    <span class="cached-tag" id="cache-tag" style="display:none">cache</span>
-    <span class="ls-tag" id="ls-tag" style="display:none">Lightspeed</span>
+    <div class="badge"><span class="dot"></span><span id="status">chargement...</span></div>
+    <span class="tag tag-cache" id="cache-tag" style="display:none">cache</span>
+    <span class="tag tag-ls" id="ls-tag" style="display:none">Lightspeed</span>
   </div>
   <div class="controls">
     <div class="psel">
@@ -187,15 +224,19 @@
 
 <script>
 const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const CAT_COLORS=['#1A1916','#4A4840','#7A7870','#AAA8A0','#DDDBD4','#C8C5BC'];
 let _days=30,_from=null,_to=null,_custom=false;
 let _cy=new Date().getFullYear(),_cm=new Date().getMonth();
 let _sf=null,_st=null;
+let _settings={monthlyTarget:0};
 
 function gf(){if(_custom&&_from)return _from;const d=new Date();d.setDate(d.getDate()-_days);return iso(d)}
 function gt(){return(_custom&&_to)?_to:iso(new Date())}
 function iso(d){return d.toISOString().split('T')[0]}
 function lbl(f,t){const s=v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});return f===t?s(f):s(f)+' → '+s(t)}
+function fmt(n,div){return(parseInt(n||0)/(div||1)).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}
+function pct(v,dec=1){return v!==null&&v!==undefined?Math.round(v*Math.pow(10,dec))/Math.pow(10,dec)+'%':'—'}
+function fcc(v){return v<28?'var(--green)':v<35?'var(--amber)':'var(--red)'}
+function fccbg(v){return v<28?'var(--green-bg)':v<35?'var(--amber-bg)':'var(--red-bg)'}
 
 function preset(d,btn){
   _days=d;_custom=false;
@@ -266,149 +307,267 @@ function qpick(k){
   closeCal();load();
 }
 
+async function saveTarget(){
+  const val=parseFloat(document.getElementById('obj-input').value)||0;
+  await fetch('/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({monthlyTarget:val})});
+  _settings.monthlyTarget=val;
+  updateObjBar(val);
+}
+
+function updateObjBar(target){
+  const caMonth=window._caMonth||0;
+  const DIV=window._DIV||1000000000;
+  const caEur=caMonth/DIV;
+  if(target>0){
+    const p=Math.min(caEur/target*100,100);
+    const fill=document.getElementById('obj-fill');
+    const pctEl=document.getElementById('obj-pct');
+    if(fill){fill.style.width=p+'%';fill.style.background=p>=100?'var(--green)':p>=70?'var(--amber)':'var(--text)';}
+    if(pctEl)pctEl.textContent=Math.round(p)+'%';
+  }
+}
+
 async function load(force=false){
   document.getElementById('err').style.display='none';
   document.getElementById('root').innerHTML='<div class="loading"><div class="spinner"></div><br>Chargement des données...</div>';
-  document.getElementById('status').textContent='connexion...';
+  document.getElementById('status').textContent='chargement...';
   document.getElementById('cache-tag').style.display='none';
   document.getElementById('ls-tag').style.display='none';
   const from=gf(),to=gt();
   try{
-    const r=await fetch(`/dashboard?from=${from}&to=${to}`+(force?'&nc=1':''));
+    const [r,sr]=await Promise.all([
+      fetch(`/dashboard?from=${from}&to=${to}`+(force?'&nc=1':'')),
+      fetch('/settings')
+    ]);
     if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
+    _settings=await sr.json();
 
     if(d.meta?.locs?.length)document.getElementById('rname').textContent=d.meta.locs[0].toUpperCase();
-    document.getElementById('status').textContent=(d.meta?.locs?.length||0)+' établissement'+(d.meta?.locs?.length>1?'s':'');
+    document.getElementById('status').textContent=(d.meta?.locs?.length||0)+' établ.';
     if(d.cached)document.getElementById('cache-tag').style.display='inline';
     if(d.meta?.lsAvailable)document.getElementById('ls-tag').style.display='inline';
 
     const DIV=d.div||1000000000;
-    const fmt=n=>(parseInt(n||0)/DIV).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
-    const pct=v=>Math.round(v*10)/10+'%';
-    const fcc=v=>v<28?'var(--green)':v<35?'var(--amber)':'var(--red)';
-    const fccbg=v=>v<28?'var(--green-bg)':v<35?'var(--amber-bg)':'var(--red-bg)';
+    window._DIV=DIV; window._caMonth=d.kpis.caMonth||0;
     const periodLbl=_custom?lbl(from,to):_days+' derniers jours';
     const caTotal=d.kpis.totalCA||1;
-    const fcG=d.kpis.totalAchats>0?(d.kpis.totalAchats/caTotal*100):null;
+    const split=d.split;
+    const caFood=split?split.food:0;
+    const caBev=split?split.bev:0;
+    const foodPct=caTotal>0?Math.round(caFood/caTotal*100):0;
+    const bevPct=caTotal>0?Math.round(caBev/caTotal*100):0;
+    const r2=d.ratios||{};
+    const target=_settings.monthlyTarget||0;
+    const caMonthEur=(d.kpis.caMonth||0)/DIV;
+    const objPct=target>0?Math.min(caMonthEur/target*100,100):0;
+    const objColor=objPct>=100?'var(--green)':objPct>=70?'var(--amber)':'var(--text)';
+
     const byDay=d.byDay||{};
     const dk=Object.keys(byDay).sort();
     const maxD=Math.max(...dk.map(k=>byDay[k]),1);
     const dlbl=dk.map(v=>new Date(v).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}));
-    const barW=Math.max(18,Math.min(42,Math.floor(580/Math.max(dk.length,1))));
-    const sortedCats=Object.entries(d.byCat||{}).sort((a,b)=>b[1]-a[1]);
+    const barW=Math.max(16,Math.min(40,Math.floor(560/Math.max(dk.length,1))));
+
+    const byCat=d.byCat||{};
+    const sortedCats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
     const maxCat=sortedCats.length?sortedCats[0][1]:1;
+
     const topP=d.topProds||[];
-    const maxP=topP.length?Math.max(...topP.map(p=>p.ca>0?p.ca:p.qty),1):1;
-    const usingQty=d.caByTag?.usingQty;
-    const caFood=d.caByTag?.food||0;
-    const caBev=d.caByTag?.bev||0;
-    const lsSrc=d.caByTag?.lsSource;
+    const recentOrders=d.recentOrders||[];
+
+    // Cocktail split
+    const cAlc=split?split.cocktailAlc:0;
+    const cSoft=split?split.cocktailSoft:0;
+    const cTotal=cAlc+cSoft;
+
+    // Soft breakdown
+    const cSoftRaw=split?split.soft:0;
+    const cAlcoolRaw=split?split.alcool:0;
 
     document.getElementById('root').innerHTML=`
-      <div class="kgrid fi">
+
+      <div class="obj-banner fi">
+        <span class="obj-label">Objectif mois en cours</span>
+        <div class="obj-track"><div class="obj-fill" id="obj-fill" style="width:${objPct}%;background:${objColor}"></div></div>
+        <span class="obj-pct" id="obj-pct" style="color:${objColor}">${target>0?Math.round(objPct)+'%':'—'}</span>
+        <span style="font-family:'Courier Prime',monospace;font-size:13px;color:var(--muted)">${fmt(d.kpis.caMonth,DIV)} / </span>
+        <div class="obj-input-wrap">
+          <input class="obj-input" type="number" id="obj-input" value="${target||''}" placeholder="objectif €">
+          <button class="obj-save" onclick="saveTarget()">Enreg.</button>
+        </div>
+      </div>
+
+      <div class="row1 fi2">
         <div class="kcard">
           <div class="klbl">Chiffre d'affaires</div>
-          <div class="kval">${fmt(d.kpis.totalCA)}</div>
-          <div class="ksub">${periodLbl}</div>
-        </div>
-        <div class="kcard">
-          <div class="klbl">Commandes POS</div>
-          <div class="kval">${(d.kpis.nbOrders||0).toLocaleString('fr-FR')}</div>
+          <div class="kval">${fmt(d.kpis.totalCA,DIV)}</div>
           <div class="ksub">${periodLbl}</div>
         </div>
         <div class="kcard">
           <div class="klbl">Ticket moyen</div>
-          <div class="kval">${fmt(d.kpis.ticket)}</div>
-          <div class="ksub">par commande</div>
+          <div class="kval">${fmt(d.kpis.ticket,DIV)}</div>
+          <div class="ksub">${(d.kpis.nbOrders||0).toLocaleString('fr-FR')} commandes</div>
         </div>
-        <div class="kcard">
-          <div class="klbl">Achats matières</div>
-          <div class="kval">${fmt(d.kpis.totalAchats)}</div>
-          <div class="ksub">bons de livraison reçus</div>
+        <div class="split-card">
+          <div class="split-header">
+            <span class="split-title">Répartition CA</span>
+            <span class="split-total">${fmt(caFood+caBev,DIV)}</span>
+          </div>
+          <div class="split-bars">
+            <div class="split-bar-food" style="width:${foodPct}%"></div>
+            <div class="split-bar-bev" style="width:${bevPct}%"></div>
+          </div>
+          <div class="split-row">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:var(--text);display:inline-block"></span>Cuisine</span>
+            <span style="font-family:'Courier Prime',monospace">${fmt(caFood,DIV)} · ${foodPct}%</span>
+          </div>
+          <div class="split-row">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:var(--border2);display:inline-block"></span>Boissons</span>
+            <span style="font-family:'Courier Prime',monospace">${fmt(caBev,DIV)} · ${bevPct}%</span>
+          </div>
+          <div class="split-items">
+            <div class="split-item">
+              <span class="split-item-label">Cocktails alcool</span>
+              <span class="split-item-val">${fmt(cAlc,DIV)}</span>
+              <span class="split-item-sub">${cTotal>0?Math.round(cAlc/cTotal*100)+'% cocktails':'—'}</span>
+            </div>
+            <div class="split-item">
+              <span class="split-item-label">Cocktails sans alc.</span>
+              <span class="split-item-val">${fmt(cSoft,DIV)}</span>
+              <span class="split-item-sub">${cTotal>0?Math.round(cSoft/cTotal*100)+'% cocktails':'—'}</span>
+            </div>
+            <div class="split-item">
+              <span class="split-item-label">Alcools / Likkaz</span>
+              <span class="split-item-val">${fmt(cAlcoolRaw,DIV)}</span>
+              <span class="split-item-sub">${caBev>0?Math.round(cAlcoolRaw/caBev*100*DIV)+'% bar':'—'}</span>
+            </div>
+            <div class="split-item">
+              <span class="split-item-label">Softs</span>
+              <span class="split-item-val">${fmt(cSoftRaw,DIV)}</span>
+              <span class="split-item-sub">${caBev>0?Math.round(cSoftRaw/caBev*100*DIV)+'% bar':'—'}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="fcstrip fi">
-        <div class="fccard" style="${fcG!==null?'background:'+fccbg(fcG):''}">
+      <div class="row2 fi3">
+        <div class="fccard" style="${r2.fcGlobal!==null?'background:'+fccbg(r2.fcGlobal):''}">
           <div class="fclbl">Food cost global</div>
-          ${fcG!==null
-            ?`<div class="fcval" style="color:${fcc(fcG)}">${pct(fcG)}</div>
-              <div class="fcbar"><div class="fcfill" style="width:${Math.min(fcG,100)}%;background:${fcc(fcG)}"></div></div>`
+          ${r2.fcGlobal!==null
+            ?`<div class="fcval" style="color:${fcc(r2.fcGlobal)}">${pct(r2.fcGlobal)}</div>
+              <div class="fcbar"><div class="fcfill" style="width:${Math.min(r2.fcGlobal,100)}%;background:${fcc(r2.fcGlobal)}"></div></div>`
             :`<div class="fcval" style="color:var(--muted)">—</div>`}
           <div class="fcsub">achats HT / CA TTC</div>
         </div>
-        <div class="fccard">
-          <div class="fclbl">CA cuisine ${lsSrc?'<span class="tag-ls">LS</span>':'<span class="tag-yk">YK</span>'}</div>
-          <div class="fcval">${caFood>0?fmt(caFood):'—'}</div>
-          <div class="fcsub">${caFood>0?Math.round(caFood/caTotal*100)+'% du CA total':'données non disponibles'}</div>
+        <div class="fccard" style="${r2.fcFood!==null?'background:'+fccbg(r2.fcFood):''}">
+          <div class="fclbl">Food cost cuisine</div>
+          ${r2.fcFood!==null
+            ?`<div class="fcval" style="color:${fcc(r2.fcFood)}">${pct(r2.fcFood)}</div>
+              <div class="fcbar"><div class="fcfill" style="width:${Math.min(r2.fcFood,100)}%;background:${fcc(r2.fcFood)}"></div></div>`
+            :`<div class="fcval" style="color:var(--muted)">—</div>`}
+          <div class="fcsub">${fmt(d.kpis.achatFood,DIV)} achats cuisine</div>
         </div>
-        <div class="fccard">
-          <div class="fclbl">CA boissons ${lsSrc?'<span class="tag-ls">LS</span>':'<span class="tag-yk">YK</span>'}</div>
-          <div class="fcval">${caBev>0?fmt(caBev):'—'}</div>
-          <div class="fcsub">${caBev>0?Math.round(caBev/caTotal*100)+'% du CA total':'données non disponibles'}</div>
+        <div class="fccard" style="${r2.fcBev!==null?'background:'+fccbg(r2.fcBev):''}">
+          <div class="fclbl">Beverage cost</div>
+          ${r2.fcBev!==null
+            ?`<div class="fcval" style="color:${fcc(r2.fcBev)}">${pct(r2.fcBev)}</div>
+              <div class="fcbar"><div class="fcfill" style="width:${Math.min(r2.fcBev,100)}%;background:${fcc(r2.fcBev)}"></div></div>`
+            :`<div class="fcval" style="color:var(--muted)">—</div>`}
+          <div class="fcsub">${fmt(d.kpis.achatBev,DIV)} achats boissons</div>
         </div>
-        <div class="fccard" style="${d.kpis.totalLosses>0?'background:var(--red-bg)':''}">
-          <div class="fclbl">Pertes & casses</div>
-          <div class="fcval" style="color:${d.kpis.totalLosses>0?'var(--red)':'var(--muted)'}">${d.kpis.totalLosses>0?fmt(d.kpis.totalLosses):'—'}</div>
-          <div class="fcsub">${d.kpis.totalLosses>0?Math.round(d.kpis.totalLosses/caTotal*100)+'% du CA':'aucune perte saisie'}</div>
+        <div class="fccard" style="${r2.margeGlobale!==null?'background:var(--green-bg)':''}">
+          <div class="fclbl">Marge brute globale</div>
+          ${r2.margeGlobale!==null
+            ?`<div class="fcval" style="color:var(--green)">${pct(r2.margeGlobale)}</div>
+              <div class="fcbar"><div class="fcfill" style="width:${Math.min(r2.margeGlobale,100)}%;background:var(--green)"></div></div>`
+            :`<div class="fcval" style="color:var(--muted)">—</div>`}
+          <div class="fcsub">${fmt(d.kpis.totalCA-d.kpis.totalAchats,DIV)} net achats</div>
         </div>
       </div>
 
-      <div class="crow fi">
+      <div class="row3 fi4">
         <div class="ccard">
           <div class="ctitle">CA par jour <span class="ctitle-sub">${periodLbl}</span></div>
           <div class="barchart">
             ${dk.map((k,i)=>`
               <div class="bcol" style="width:${barW}px">
-                <div class="binn"><div class="bar" style="height:${Math.round(byDay[k]/maxD*100)}%" title="${dlbl[i]} — ${fmt(byDay[k])}"></div></div>
+                <div class="binn">
+                  <div class="bar" style="height:${Math.round(byDay[k]/maxD*100)}%">
+                    <div class="bar-tooltip">${dlbl[i]}<br>${fmt(byDay[k],DIV)}</div>
+                  </div>
+                </div>
                 <div class="blbl">${dk.length<=18?dlbl[i]:i%Math.ceil(dk.length/8)===0?dlbl[i]:''}</div>
               </div>`).join('')}
           </div>
         </div>
         <div class="ccard">
-          <div class="ctitle">Catégories ${lsSrc?'<span class="tag-ls" style="font-size:10px">Lightspeed</span>':'<span class="tag-yk" style="font-size:10px">Yokitup</span>'}</div>
+          <div class="ctitle">Catégories <span class="tag tag-ls" style="font-size:10px">${d.meta?.lsAvailable?'Lightspeed':'Yokitup'}</span></div>
           <div class="catlist">
             ${sortedCats.length===0
-              ?'<div style="color:var(--muted);font-size:13px;padding:12px 0">Aucune catégorie disponible</div>'
-              :sortedCats.map(([n,v],i)=>`
+              ?'<div style="color:var(--muted);font-size:13px;padding:8px 0">En attente du CSV Lightspeed</div>'
+              :sortedCats.map(([n,v])=>`
                 <div class="catitem">
                   <span class="catnm">${n}</span>
-                  <div class="catbar"><div class="catbarfill" style="width:${Math.round(v/maxCat*100)}%"></div></div>
-                  <span class="catv">${fmt(v)}</span>
+                  <div class="catbar-wrap"><div class="catbar-fill" style="width:${Math.round(v/maxCat*100)}%"></div></div>
+                  <span class="catv">${(v).toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>
                 </div>`).join('')}
           </div>
         </div>
       </div>
 
-      <div class="brow fi">
-        <div class="ccard">
-          <div class="ctitle">Top produits <span class="ctitle-sub">${lsSrc?'Lightspeed · par CA':usingQty?'par quantité':'par CA'}</span></div>
+      <div class="row4" style="margin-top:12px">
+        <div class="ccard fi4">
+          <div class="ctitle">Cocktails</div>
+          <div class="cocktail-grid">
+            <div class="cocktail-card">
+              <div class="cocktail-label">Avec alcool</div>
+              <div class="cocktail-val">${fmt(cAlc,DIV)}</div>
+              <div class="cocktail-sub">${cTotal>0?Math.round(cAlc/cTotal*100)+'%':'—'} du total cocktails</div>
+            </div>
+            <div class="cocktail-card" style="background:var(--light)">
+              <div class="cocktail-label">Sans alcool</div>
+              <div class="cocktail-val">${fmt(cSoft,DIV)}</div>
+              <div class="cocktail-sub">${cTotal>0?Math.round(cSoft/cTotal*100)+'%':'—'} du total cocktails</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Sans alcool = Lover's Leap + Cockpit Country</div>
+          <div style="margin-top:14px">
+            <div class="ctitle" style="margin-bottom:10px">Split boissons</div>
+            ${[['Cocktails alcool',cAlc],['Cocktails sans alc.',cSoft],['Alcools / Likkaz',cAlcoolRaw],['Softs',cSoftRaw]].map(([n,v])=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+                <span>${n}</span>
+                <span style="font-family:'Courier Prime',monospace">${fmt(v,DIV)}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="ccard fi4">
+          <div class="ctitle">Top produits <span class="ctitle-sub">Lightspeed · par CA</span></div>
           ${topP.length===0
-            ?'<div style="color:var(--muted);font-size:13px;padding:12px 0">En attente du CSV Lightspeed quotidien</div>'
+            ?'<div style="color:var(--muted);font-size:13px;padding:8px 0">En attente du CSV Lightspeed quotidien</div>'
             :topP.map((p,i)=>`
               <div class="pitem">
                 <span class="prank">${String(i+1).padStart(2,'0')}.</span>
                 <span class="pname">${p.name||'—'}</span>
                 ${p.group?`<span class="pgroup">${p.group}</span>`:''}
-                <span class="pca">${lsSrc||!usingQty?fmt(p.ca):Math.round(p.qty)+' vte'}</span>
+                <span class="pca">${fmt(p.ca,DIV)}</span>
               </div>`).join('')}
         </div>
-        <div class="ccard">
+
+        <div class="ccard fi4">
           <div class="ctitle">Dernières commandes</div>
           <div class="olist">
-            ${(d.recentOrders||[]).map(o=>`
+            ${recentOrders.map(o=>`
               <div class="oitem">
-                <div style="display:flex;align-items:center;gap:8px">
-                  <span class="odate">${o.date}</span>
-                  <span class="oloc">${o.loc||'—'}</span>
-                </div>
-                <span class="oamt">${fmt(o.amount)}</span>
+                <div><span class="odate">${o.date}</span><span class="oloc">${o.loc||'—'}</span></div>
+                <span class="oamt">${fmt(o.amount,DIV)}</span>
               </div>`).join('')}
           </div>
         </div>
       </div>
     `;
+
   }catch(e){
     document.getElementById('err').style.display='block';
     document.getElementById('err').textContent='Erreur : '+e.message;
