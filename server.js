@@ -264,7 +264,7 @@ app.get('/dashboard', checkAuth, async (req,res) => {
     orders.forEach(o=>{byDay_yk[o.date]=(byDay_yk[o.date]||0)+parseInt(o.amount_excluding_tax||0);});
 
     const recentOrders=[...orders].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30)
-      .map(o=>({date:o.date,loc:locMap[o.location_id]||'',amount:parseInt(o.amount_excluding_tax||0)}));
+      .map(o=>({date:o.date,loc:locMap[o.location_id]||'',amount:parseInt(o.amount_excluding_tax||0)/DIV}));
 
     // Lightspeed data
     const lsDays=Object.keys(lsStore).filter(d=>d>=from&&d<=to);
@@ -326,7 +326,7 @@ app.get('/dashboard', checkAuth, async (req,res) => {
             totalAchats:totalAchatsEur,achatFood:achatFoodEur,achatBev:achatBevEur,nbOrders,caMonth:caMonthEur},
       ratios:{fcGlobal,fcFood,fcBev,margeGlobale},
       byDay,byCat,topProds,split,
-      recentOrders,settings,div:1
+      recentOrders,settings,div:DIV
     };
     cacheSet(ck,payload);
     res.json(payload);
