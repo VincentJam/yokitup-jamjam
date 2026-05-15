@@ -105,14 +105,14 @@ function aggregateLS(rows) {
     byCat[gs]=(byCat[gs]||0)+ht;
 
     const grpL=grp.toLowerCase();
-    if(grpL.includes('cuisine')||grpL.includes('food'))caFood+=ht; else caBev+=ht;
+    if(grpL.includes('cuisine'))caFood+=ht; else caBev+=ht;
 
     const gsL=gs.toLowerCase();
     if(gsL.includes('cocktail')){
       if(SOFT_COCKTAILS.some(s=>itemName.includes(s)))caCocktailSoft+=ht; else caCocktailAlc+=ht;
     }
     if(gsL.includes('likkaz'))caLikkaz+=ht;
-    else if(gsL.includes('alcool')||gsL.includes('spiritueux'))caAlcool+=ht;
+    else if(gsL==='alcools'||gsL.includes('spiritueux')||gsL.includes('vin')||gsL.includes('bière')||gsL.includes('biere'))caAlcool+=ht;
     if(gsL.includes('soft')||gsL.includes('sans alcool'))caSoft+=ht;
 
     if(r.Date){const p=r.Date.split(' ');if(p[0]){const dp=p[0].split('/');if(dp.length===3){const dk=`20${dp[2]}-${dp[1]}-${dp[0]}`;byDay[dk]=(byDay[dk]||0)+ht;}}}
@@ -202,13 +202,14 @@ app.get('/dashboard', checkAuth, async (req,res) => {
 
     const totalHT_yk=orders.reduce((s,o)=>s+parseInt(o.amount_excluding_tax||0),0)/DIV;
     const caMonthHT=monthOrders.reduce((s,o)=>s+parseInt(o.amount_excluding_tax||0),0)/DIV;
-    const totalAchatsHT=delivNotes.reduce((s,d)=>s+parseInt(d.received_amount_excluding_tax||0),0)/DIV;
+    const receivedNotes=delivNotes.filter(d=>d.status==="received");
+    const totalAchatsHT=receivedNotes.reduce((s,d)=>s+parseInt(d.received_amount_excluding_tax||0),0)/100;
 
     const delivItems=await ykAll('/supplier_delivery_note_items').catch(()=>[]);
-    const delivNoteIds=new Set(delivNotes.map(d=>d.id));
+    const delivNoteIds=new Set(receivedNotes.map(d=>d.id));
     let achatFood=0, achatBev=0;
     delivItems.filter(i=>delivNoteIds.has(i.supplier_delivery_note_id)).forEach(i=>{
-      const amt=parseInt(i.received_amount_excluding_tax||0)/DIV;
+      const amt=parseInt(i.received_amount_excluding_tax||0)/100;
       const tagStr=(ptMap[i.product_id]||[]).join(' ').toLowerCase();
       if(tagStr.includes('cuisine'))achatFood+=amt;
       else if(tagStr.includes('bar'))achatBev+=amt;
@@ -231,7 +232,7 @@ app.get('/dashboard', checkAuth, async (req,res) => {
           if(!m.topItems[item.name])m.topItems[item.name]={...item,qty:0,ht:0};
           m.topItems[item.name].qty+=item.qty; m.topItems[item.name].ht+=item.ht;
         });
-        Object.entries(ls.byCat).forEach(([k,v])=>{m.byCat[k]=(m.byCat[k]||0)+v;});
+        Object.entries(ls.byCat).forEach(([k,v])=>{if(k&&k.trim()&&k!=='[]')m.byCat[k]=(m.byCat[k]||0)+v;});
         Object.entries(ls.byDay).forEach(([k,v])=>{m.byDay[k]=(m.byDay[k]||0)+v;});
         m.totalHT+=ls.totalHT; m.nbOrders+=ls.nbOrders||0;
         Object.keys(ls.split).forEach(k=>{m.split[k]=(m.split[k]||0)+(ls.split[k]||0);});
