@@ -159,6 +159,9 @@ app.post('/upload/lightspeed', upload.single('file'), async (req,res) => {
     const rows=parseCSV(req.file.buffer.toString('utf-8'));
     const agg=aggregateLS(rows);
     const days=Object.keys(agg.byDay);
+    // Stocker sous chaque jour mais avec un ID unique pour éviter de compter nbOrders plusieurs fois
+    const csvId=agg.updatedAt;
+    agg.csvId=csvId;
     if(days.length===0)lsStore[new Date().toISOString().split('T')[0]]=agg;
     else days.forEach(d=>{lsStore[d]=agg;});
     await saveStores(); cacheClearDashboard();
@@ -227,15 +230,28 @@ app.get('/dashboard', checkAuth, async (req,res) => {
       const m={topItems:{},byCat:{},byDay:{},totalHT:0,nbOrders:0,
         split:{food:0,bev:0,cocktailAlc:0,cocktailSoft:0,alcool:0,soft:0,likkaz:0},
         cocktailDetail:{},tickets:{midiSum:0,midiCount:0,soirSum:0,soirCount:0}};
+      const seenCsvIds=new Set();
       lsDays.forEach(day=>{
         const ls=lsStore[day]; if(!ls)return;
+        const csvId=ls.csvId||day; // identifiant unique du CSV
+        const isNewCsv=!seenCsvIds.has(csvId);
+        seenCsvIds.add(csvId);
+        if(isNewCsv){
+          // N'ajouter totalHT et nbOrders qu'une seule fois par CSV
+          // mais filtrer les données par les jours dans la période
+          const daysInPeriod=Object.keys(ls.byDay).filter(d=>d>=from&&d<=to);
+          const htInPeriod=daysInPeriod.reduce((s,d)=>s+(ls.byDay[d]||0),0);
+          m.totalHT+=htInPeriod;
+          // nbOrders approximé par ratio de jours dans la période
+          const totalDays=Object.keys(ls.byDay).length||1;
+          m.nbOrders+=Math.round((ls.nbOrders||0)*(daysInPeriod.length/totalDays));
+        }
         ls.topItems.forEach(item=>{
           if(!m.topItems[item.name])m.topItems[item.name]={...item,qty:0,ht:0};
-          m.topItems[item.name].qty+=item.qty; m.topItems[item.name].ht+=item.ht;
+          if(isNewCsv){m.topItems[item.name].qty+=item.qty; m.topItems[item.name].ht+=item.ht;}
         });
-        Object.entries(ls.byCat).forEach(([k,v])=>{if(k&&k.trim()&&k!=='[]')m.byCat[k]=(m.byCat[k]||0)+v;});
+        Object.entries(ls.byCat).forEach(([k,v])=>{if(k&&k.trim()&&k!=='[]'&&isNewCsv)m.byCat[k]=(m.byCat[k]||0)+v;});
         Object.entries(ls.byDay).forEach(([k,v])=>{m.byDay[k]=(m.byDay[k]||0)+v;});
-        m.totalHT+=ls.totalHT; m.nbOrders+=ls.nbOrders||0;
         Object.keys(ls.split).forEach(k=>{m.split[k]=(m.split[k]||0)+(ls.split[k]||0);});
         if(ls.cocktailDetail){ls.cocktailDetail.forEach(c=>{
           if(!m.cocktailDetail[c.name])m.cocktailDetail[c.name]={...c,qty:0,ht:0};
