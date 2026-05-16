@@ -202,7 +202,12 @@ app.get('/dashboard', checkAuth, async (req,res) => {
 
     const totalHT_yk=orders.reduce((s,o)=>s+parseInt(o.amount_excluding_tax||0),0)/DIV;
     const caMonthHT=monthOrders.reduce((s,o)=>s+parseInt(o.amount_excluding_tax||0),0)/DIV;
-    const receivedNotes=delivNotes.filter(d=>d.status==="received");
+    // Filtrer côté serveur car l'API Yokitup ignore le filtre de date sur cet endpoint
+    const receivedNotes=delivNotes.filter(d=>{
+      if(d.status!=='received') return false;
+      const rd=d.received_date||'';
+      return rd>=from && rd<=to;
+    });
     const totalAchatsHT=receivedNotes.reduce((s,d)=>s+parseInt(d.received_amount_excluding_tax||0),0)/100;
 
     // Calcul achats depuis les BL reçus uniquement (sans items — pagination trop complexe)
