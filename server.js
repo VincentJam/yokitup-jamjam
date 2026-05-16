@@ -205,15 +205,11 @@ app.get('/dashboard', checkAuth, async (req,res) => {
     const receivedNotes=delivNotes.filter(d=>d.status==="received");
     const totalAchatsHT=receivedNotes.reduce((s,d)=>s+parseInt(d.received_amount_excluding_tax||0),0)/100;
 
-    const delivItems=await ykAll('/supplier_delivery_note_items').catch(()=>[]);
-    const delivNoteIds=new Set(receivedNotes.map(d=>d.id));
-    let achatFood=0, achatBev=0;
-    delivItems.filter(i=>delivNoteIds.has(i.supplier_delivery_note_id)).forEach(i=>{
-      const amt=parseInt(i.received_amount_excluding_tax||0)/100;
-      const tagStr=(ptMap[i.product_id]||[]).join(' ').toLowerCase();
-      if(tagStr.includes('cuisine'))achatFood+=amt;
-      else if(tagStr.includes('bar'))achatBev+=amt;
-    });
+    // Calcul achats depuis les BL reçus uniquement (sans items — pagination trop complexe)
+    // On utilise le total du BL pour food cost global
+    // Split food/bev basé sur le tag du fournisseur (à améliorer plus tard)
+    const achatFood=totalAchatsHT; // temporaire : tout en food cost en attendant tags fournisseurs
+    const achatBev=0;
 
     const byDay_yk={};
     orders.forEach(o=>{byDay_yk[o.date]=(byDay_yk[o.date]||0)+parseInt(o.amount_excluding_tax||0)/DIV;});
@@ -278,7 +274,7 @@ app.get('/dashboard', checkAuth, async (req,res) => {
   } catch(e){console.error(e);res.status(500).json({error:e.message});}
 });
 
-app.get('/cache/clear',checkAuth,(req,res)=>{Object.keys(cache).forEach(k=>delete cache[k]);res.json({ok:true});});
+app.get('/cache/clear',checkAuth,(req,res)=>{const n=Object.keys(cache).length;Object.keys(cache).forEach(k=>delete cache[k]);res.json({ok:true,cleared:n});});
 app.use(checkAuth);
 app.use(express.static(path.join(__dirname,'public')));
 app.get('/api/*',async(req,res)=>{
